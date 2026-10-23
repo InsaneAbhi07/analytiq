@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { ArrowDown, ArrowUp, Download, PauseCircle, Search, Star, Upload, XCircle } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { ArrowDown, ArrowUp, Columns3, Download, PauseCircle, Search, Star, Upload, XCircle } from "lucide-react";
 import { jobs } from "../data/seed";
 import { awaitsReview, interviewsFor, useStore, type AppView } from "../data/store";
 import { useFeedback } from "../components/feedback";
@@ -14,6 +14,7 @@ export default function Candidates() {
   const { applications, changeStage } = useStore();
   const { toast, confirm } = useFeedback();
   const [params] = useSearchParams();
+  const navigate = useNavigate();
   const [q, setQ] = useState(params.get("q") ?? "");
   const [job, setJob] = useState(params.get("job") ?? "");
   const [stage, setStage] = useState("");
@@ -75,6 +76,8 @@ export default function Candidates() {
         {selected.length > 0 && (
           <div className="flex flex-wrap items-center gap-2 border-b border-brand-100 bg-brand-50 px-4 py-2 text-sm text-brand-800">
             <strong>{selected.length} selected</strong>
+            <button className="btn btn-secondary btn-sm" disabled={selected.length < 2 || selected.length > 4} title="Select 2–4 candidates"
+              onClick={() => navigate(`/app/candidates/compare?ids=${selected.join(",")}`)}><Columns3 size={14} /> Compare</button>
             <button className="btn btn-secondary btn-sm" onClick={() => bulk("Shortlisted", "Shortlist")}><Star size={14} /> Shortlist</button>
             <button className="btn btn-secondary btn-sm" onClick={() => bulk("OnHold", "Put on hold")}><PauseCircle size={14} /> Hold</button>
             <button className="btn btn-secondary btn-sm text-rose-700" onClick={() => bulk("Rejected", "Reject", true)}><XCircle size={14} /> Reject</button>

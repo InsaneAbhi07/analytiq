@@ -254,6 +254,50 @@ export const plans: Plan[] = [
     features: ["Everything in Professional", "SSO / SAML", "Dedicated AI inference node", "Data residency options", "SLA & account manager"] },
 ];
 
+// ---------- Platform (Super Admin) data: tenant-level aggregates only, no candidate content ----------
+
+export interface Tenant {
+  id: number; name: string; industry: string; city: string; email: string; plan: string;
+  status: "Active" | "Trial" | "Suspended" | "Deactivated"; users: number; activeJobs: number; creditsUsed: number; creditsLimit: number; createdOn: Date;
+}
+
+const month = (m: number) => new Date(today.getFullYear(), today.getMonth() - m, today.getDate());
+
+export const tenants: Tenant[] = [
+  { id: 1, name: company.name, industry: "Financial Services", city: "Bengaluru", email: company.email, plan: "Growth", status: "Active", users: 6, activeJobs: 3, creditsUsed: 312, creditsLimit: 500, createdOn: month(7) },
+  { id: 2, name: "Kalpa Health Systems", industry: "Healthcare", city: "Chennai", email: "hr@kalpahealth.example", plan: "Professional", status: "Active", users: 14, activeJobs: 19, creditsUsed: 1488, creditsLimit: 2000, createdOn: month(11) },
+  { id: 3, name: "Orbit Logistics", industry: "Logistics", city: "Gurugram", email: "people@orbitlogistics.example", plan: "Starter", status: "Active", users: 2, activeJobs: 3, creditsUsed: 97, creditsLimit: 100, createdOn: month(3) },
+  { id: 4, name: "Saffron Retail", industry: "Retail", city: "Mumbai", email: "careers@saffronretail.example", plan: "Growth", status: "Active", users: 5, activeJobs: 8, creditsUsed: 221, creditsLimit: 500, createdOn: month(5) },
+  { id: 5, name: "Vertex Infra Projects", industry: "Construction", city: "Ahmedabad", email: "hr@vertexinfra.example", plan: "Starter", status: "Suspended", users: 2, activeJobs: 0, creditsUsed: 100, creditsLimit: 100, createdOn: month(9) },
+  { id: 6, name: "Brightpath EdTech", industry: "Education", city: "Noida", email: "talent@brightpath.example", plan: "Enterprise", status: "Active", users: 38, activeJobs: 44, creditsUsed: 5210, creditsLimit: 8000, createdOn: month(14) },
+  { id: 7, name: "Nimbus Cloudworks", industry: "Software", city: "Pune", email: "hiring@nimbuscloud.example", plan: "Professional", status: "Trial", users: 4, activeJobs: 6, creditsUsed: 58, creditsLimit: 200, createdOn: day(-9) },
+  { id: 8, name: "Lotus Hospitality", industry: "Hospitality", city: "Jaipur", email: "hr@lotushospitality.example", plan: "Starter", status: "Deactivated", users: 1, activeJobs: 0, creditsUsed: 0, creditsLimit: 100, createdOn: month(10) },
+];
+
+export const auditLog = [
+  { on: day(0, 9.2), actor: "abhishek.singh@zenithfintech.example", company: company.name, action: "Resume downloaded", target: "Application #1 · Aarav Mehta", ip: "103.21.44.10", severity: "Info" },
+  { on: day(0, 8.9), actor: "rahul.verma@zenithfintech.example", company: company.name, action: "Stage changed → Shortlisted", target: "Application #2 · Sneha Kulkarni", ip: "103.21.44.12", severity: "Info" },
+  { on: day(0, 8.1), actor: "system", company: "Kalpa Health Systems", action: "Usage limit warning (90%)", target: "Resume credits", ip: "—", severity: "Warning" },
+  { on: day(0, 7.4), actor: "unknown", company: "—", action: "Login throttled (5 failed attempts)", target: "admin@orbitlogistics.example", ip: "45.155.22.8", severity: "High" },
+  { on: day(-1, 21), actor: "platform-admin@analytiq.example", company: "Vertex Infra Projects", action: "Company suspended", target: "Reason: payment overdue > grace period", ip: "10.0.0.4", severity: "Warning" },
+  { on: day(-1, 18), actor: "system", company: company.name, action: "Cross-tenant request blocked", target: "GET /candidates/2041 (owned by tenant 2)", ip: "103.21.44.12", severity: "High" },
+  { on: day(-1, 11), actor: "simran.kaur@zenithfintech.example", company: company.name, action: "AI score overridden", target: "Application #8 · Vikram Singh (reason recorded)", ip: "103.21.44.15", severity: "Info" },
+  { on: day(-1, 10), actor: "platform-admin@analytiq.example", company: "Nimbus Cloudworks", action: "Plan assigned → Professional (trial)", target: "Subscription", ip: "10.0.0.4", severity: "Info" },
+  { on: day(-2, 15), actor: "abhishek.singh@zenithfintech.example", company: company.name, action: "User invited", target: "leena.dsouza@zenithfintech.example (Interviewer)", ip: "103.21.44.10", severity: "Info" },
+  { on: day(-2, 9), actor: "system", company: "Brightpath EdTech", action: "Retention policy purge", target: "142 candidate records older than 24 months", ip: "—", severity: "Info" },
+] as const;
+
+export const processingJobs = [
+  { id: "rp-8f21", company: company.name, fileType: "PDF", status: "Processing", attempts: 1, durationMs: 0, queuedOn: day(0, 9.3) },
+  { id: "rp-8f1e", company: company.name, fileType: "DOCX", status: "Queued", attempts: 0, durationMs: 0, queuedOn: day(0, 9.35) },
+  { id: "rp-8f0a", company: "Kalpa Health Systems", fileType: "PDF", status: "Completed", attempts: 1, durationMs: 2140, queuedOn: day(0, 9.1) },
+  { id: "rp-8ef3", company: "Brightpath EdTech", fileType: "PDF", status: "NeedsReview", attempts: 1, durationMs: 3890, queuedOn: day(0, 8.8), error: "Low text density — possible scanned document" },
+  { id: "rp-8ee7", company: company.name, fileType: "DOCX", status: "Failed", attempts: 3, durationMs: 310, queuedOn: day(0, 8.2), error: "File is corrupted or password-protected" },
+  { id: "rp-8ed2", company: "Saffron Retail", fileType: "PDF", status: "Completed", attempts: 2, durationMs: 1820, queuedOn: day(0, 7.9) },
+] as const;
+
+export const planSubscribers: Record<string, number> = { Starter: 23, Growth: 41, Professional: 12, Enterprise: 3 };
+
 export const subscription = {
   plan: "Growth",
   cycle: "Monthly",

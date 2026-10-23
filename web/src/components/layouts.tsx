@@ -2,7 +2,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import clsx from "clsx";
 import {
-  BarChart3, Bell, Briefcase, CalendarDays, ChevronDown, CreditCard, ExternalLink, Globe2, LayoutDashboard, LogOut, Menu, Plus, Search, Sparkles, Users, X,
+  BarChart3, Bell, Briefcase, CalendarDays, ChevronDown, CreditCard, ExternalLink, Globe2, LayoutDashboard, LogOut, MailCheck, Menu, Plus, Search, Settings,
+  ShieldAlert, Sparkles, UserRoundCheck, Users, X,
 } from "lucide-react";
 import { company, currentUser, interviews, jobs, subscription } from "../data/seed";
 import { awaitsReview, useStore } from "../data/store";
@@ -42,8 +43,12 @@ export function AppShell() {
     { to: "/app/jobs", label: "Jobs", icon: Briefcase, count: jobs.filter((j) => j.status === "Published").length },
     { to: "/app/candidates", label: "Candidates", icon: Users, count: applications.filter(awaitsReview).length },
     { to: "/app/interviews", label: "Interviews", icon: CalendarDays, count: interviews.filter((i) => i.status === "Scheduled").length },
+    { to: "/app/offers", label: "Offers", icon: MailCheck },
     { to: "/app/analytics", label: "Analytics", icon: BarChart3 },
     { to: "/app/billing", label: "Billing & usage", icon: CreditCard, section: "Company" },
+    { to: "/app/settings", label: "Settings", icon: Settings },
+    { to: "/app/my-interviews", label: "My interviews", icon: UserRoundCheck, section: "Other views" },
+    { to: "/admin", label: "Platform admin", icon: ShieldAlert },
   ];
 
   return (
@@ -101,7 +106,7 @@ export function AppShell() {
                 {[
                   ["/app/candidates/14", "Resume processing failed for Meera Pillai", "Product Designer · needs manual review"],
                   ["/app/interviews", "Interview today 4:00 PM — Neha Gupta", "Data Scientist — NLP · Round 1"],
-                  ["/app/candidates/7", "Offer to Ishita Banerjee awaiting response", "Sent 2 days ago"],
+                  ["/app/offers", "Offer to Ishita Banerjee awaiting response", "Sent 2 days ago"],
                 ].map(([to, t, s]) => (
                   <Link key={to} to={to} className="block border-b border-ink-100 px-4 py-2.5 last:border-0 hover:bg-ink-50">
                     <div className="text-sm font-medium">{t}</div><div className="text-xs text-ink-500">{s}</div>
@@ -116,8 +121,13 @@ export function AppShell() {
                 <ChevronDown size={15} className="text-ink-400" />
               </span>}>
               <div className="w-56 py-1 text-sm">
+                <Link to="/app/settings" className="flex items-center gap-2 px-4 py-2 hover:bg-ink-50"><Settings size={15} /> Settings</Link>
                 <Link to="/app/billing" className="flex items-center gap-2 px-4 py-2 hover:bg-ink-50"><CreditCard size={15} /> Billing &amp; usage</Link>
-                <Link to="/careers" className="flex items-center gap-2 px-4 py-2 hover:bg-ink-50"><Globe2 size={15} /> View as candidate</Link>
+                <div className="my-1 border-t border-ink-100" />
+                <div className="px-4 pb-1 pt-1.5 text-[0.7rem] font-semibold uppercase tracking-wider text-ink-400">Prototype: view as</div>
+                <Link to="/app/my-interviews" className="flex items-center gap-2 px-4 py-2 hover:bg-ink-50"><UserRoundCheck size={15} /> Interviewer</Link>
+                <Link to="/careers" className="flex items-center gap-2 px-4 py-2 hover:bg-ink-50"><Globe2 size={15} /> Candidate</Link>
+                <Link to="/admin" className="flex items-center gap-2 px-4 py-2 hover:bg-ink-50"><ShieldAlert size={15} /> Platform Super Admin</Link>
                 <div className="my-1 border-t border-ink-100" />
                 <Link to="/login" className="flex items-center gap-2 px-4 py-2 hover:bg-ink-50"><LogOut size={15} /> Sign out</Link>
               </div>

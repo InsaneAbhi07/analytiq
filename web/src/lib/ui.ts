@@ -23,6 +23,9 @@ export const interviewTone = (s: InterviewStatus): Tone => ({ Scheduled: "info",
 export const interviewLabel = (s: InterviewStatus) => (s === "NoShow" ? "No-show" : s);
 export const offerTone = (s: OfferStatus): Tone => ({ Draft: "neutral", Sent: "info", Accepted: "teal", Declined: "danger", Joined: "success" } as const)[s];
 
+export const tenantTone = (s: string): Tone => (({ Active: "success", Trial: "info", Suspended: "warning", Deactivated: "danger" } as Record<string, Tone>)[s] ?? "neutral");
+export const severityTone = (s: string): Tone => (s === "High" ? "danger" : s === "Warning" ? "warning" : "neutral");
+
 /** Low scores use neutral grey on purpose: a low match means missing evidence, not a verdict. */
 export const scoreBand = (n: number) => (n >= 75 ? "high" : n >= 50 ? "mid" : "low");
 

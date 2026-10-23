@@ -81,7 +81,7 @@ export default function CandidateProfile() {
           {open && (
             <div className="flex flex-wrap gap-2">
               {["New", "Screening", "OnHold", "InfoRequested"].includes(a.stage) && <button className="btn btn-primary" onClick={() => move("Shortlisted")}><Star size={15} /> Shortlist</button>}
-              <button className="btn btn-secondary" onClick={() => toast("Interview scheduling opens here in the full build.", "info")}><CalendarPlus size={15} /> Schedule interview</button>
+              <Link to={`/app/interviews/schedule?app=${a.id}`} className="btn btn-secondary"><CalendarPlus size={15} /> Schedule interview</Link>
               <div className="relative">
                 <button className="btn btn-secondary" onClick={() => setMenu((m) => !m)} aria-expanded={menu}>More <ChevronDown size={15} /></button>
                 {menu && (<>

@@ -23,7 +23,13 @@ Both versions use the same mock data and the same scoring formula.
 - **Jobs**: list, pipeline board per job, screening criteria, and a create form with an AI draft for the description
 - **Candidates**: filterable and sortable screening table with bulk shortlist, hold and reject (a reason is required for rejection)
 - **Candidate profile**: score breakdown, per-skill resume evidence (exact vs related matches), missing evidence, warnings, model and config version, resume preview, interviews, offer, notes and status history
-- **Interviews**, **Analytics**, **Billing & usage** (demo billing mode)
+- **Compare candidates** side by side, skill by skill (select 2–4 in the candidates table)
+- **Interviews**: upcoming and past lists, a scheduling form with editable AI-suggested questions, and structured feedback (ratings, evidence, recommendation; locked once submitted)
+- **Interviewer view** ("My interviews"): only assigned interviews, with no scores, salary or notes
+- **Offers**: draft → sent → accepted/declined → joined, with compensation restricted to authorised roles
+- **Analytics** and **Billing & usage** (demo billing mode)
+- **Settings**: company profile, team and roles, departments, scoring weights, privacy and retention, integrations
+- **Platform Super Admin** console: overview, companies (suspend, reactivate, assign plan, support-access request), plans, AI processing queue, security and audit log, system settings
 - **Careers portal**: job search, job page, mobile-friendly application form with resume upload checks, confirmation, and status tracking for candidates
 
 ## How scoring works (prototype)

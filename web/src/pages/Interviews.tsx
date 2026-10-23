@@ -32,7 +32,7 @@ export default function Interviews() {
   return (
     <>
       <PageHeader title="Interviews" subtitle={`${upcoming.length} upcoming · ${past.filter((i) => i.status === "Completed").length} completed · times in IST`}
-        actions={<button className="btn btn-primary" onClick={() => toast("The scheduling form opens here in the full build.", "info")}><CalendarDays size={15} /> Schedule interview</button>} />
+        actions={<Link to="/app/interviews/schedule" className="btn btn-primary"><CalendarDays size={15} /> Schedule interview</Link>} />
       <div className="card overflow-hidden">
         <div className="flex gap-1 border-b border-ink-200 px-3">
           {(["upcoming", "past"] as const).map((k) => (
@@ -59,6 +59,8 @@ export default function Interviews() {
                     {i.interviewers.map((n) => <span key={n} className="rounded-full ring-2 ring-white"><Avatar name={n} initials={initials(n)} size="sm" /></span>)}
                   </div>
                   <Badge tone={interviewTone(i.status)} className="min-w-[84px] justify-center">{interviewLabel(i.status)}</Badge>
+                  {i.status === "Scheduled" && i.type === "Video" && <button className="btn btn-secondary btn-sm" onClick={() => toast("Opens the meeting link in the full build.", "info")}>Join</button>}
+                  {i.status !== "Cancelled" && <Link to={`/app/interviews/${i.id}/feedback`} className="btn btn-ghost btn-sm">{i.feedback ? "Feedback" : "Record feedback"}</Link>}
                 </div>
               );
             })}
