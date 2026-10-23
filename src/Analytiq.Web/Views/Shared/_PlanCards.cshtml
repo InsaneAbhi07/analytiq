@@ -1,0 +1,68 @@
+@model List<Plan>
+@{
+    var current = ViewData["CurrentPlan"] as string;
+    var inApp = current is not null;
+}
+<div class="d-flex justify-content-center align-items-center gap-2 mb-4">
+    <span class="small fw-medium">Monthly</span>
+    <div class="form-check form-switch m-0">
+        <input class="form-check-input" type="checkbox" role="switch" id="cycleToggle" data-cycle-toggle aria-label="Bill annually" />
+    </div>
+    <label class="small fw-medium" for="cycleToggle">Annual <span class="nx-badge nx-badge-success">2 months free</span></label>
+</div>
+<div class="row g-3">
+    @foreach (var p in Model)
+    {
+        var isCurrent = p.Name == current;
+        <div class="col-md-6 col-xl-3">
+            <div class="nx-card nx-plan @(p.Highlight ? "highlight" : "")">
+                @if (p.Highlight) { <span class="nx-badge nx-badge-primary nx-plan-flag">Most popular</span> }
+                <h3 class="h5 mb-1">@p.Name</h3>
+                <p class="small text-muted" style="min-height:2.6em">@p.Tagline</p>
+                @if (p.MonthlyPrice is { } m)
+                {
+                    <div class="nx-plan-price" data-price-monthly>@Ui.Inr(m).Replace(".00", "")<small> /month</small></div>
+                    <div class="nx-plan-price" data-price-annual hidden>@Ui.Inr(p.AnnualPrice ?? 0).Replace(".00", "")<small> /year</small></div>
+                    <div class="small text-muted">+ GST · sample price</div>
+                }
+                else
+                {
+                    <div class="nx-plan-price">Custom</div>
+                    <div class="small text-muted">Talk to sales</div>
+                }
+                <ul>
+                    <li><i class="bi bi-check2"></i>@p.ActiveJobs active jobs</li>
+                    <li><i class="bi bi-check2"></i>@p.ResumeCredits resume credits</li>
+                    <li><i class="bi bi-check2"></i>@p.Seats recruiter seats</li>
+                    <li><i class="bi bi-check2"></i>@p.Storage storage</li>
+                    @foreach (var f in p.Features) { <li><i class="bi bi-check2"></i>@f</li> }
+                </ul>
+                <div class="mt-auto">
+                    @if (!inApp)
+                    {
+                        <a class="btn @(p.Highlight ? "btn-primary" : "btn-outline-secondary") w-100" asp-controller="Account" asp-action="Register">@(p.MonthlyPrice is null ? "Contact sales" : "Start free trial")</a>
+                    }
+                    else if (isCurrent)
+                    {
+                        <button class="btn btn-outline-secondary w-100" disabled>Current plan</button>
+                    }
+                    else if (p.MonthlyPrice is null)
+                    {
+                        <button class="btn btn-outline-secondary w-100" data-toast="Request sent. Our team will contact you (prototype)." data-toast-variant="info">Contact sales</button>
+                    }
+                    else
+                    {
+                        <form asp-controller="Billing" asp-action="ChangePlan" method="post">
+                            <input type="hidden" name="plan" value="@p.Name" />
+                            <input type="hidden" name="cycle" value="Monthly" />
+                            <button class="btn @(p.Highlight ? "btn-primary" : "btn-outline-secondary") w-100" type="submit"
+                                    data-confirm="In demo billing mode no payment is taken. With a live gateway you would be redirected to checkout, and the change applies only after the provider confirms payment."
+                                    data-confirm-title="Switch to @p.Name?" data-confirm-ok="Continue">Switch to @p.Name</button>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+<p class="small text-muted text-center mt-3 mb-0">Prices shown are sample values for the prototype. Real pricing is configured by the platform admin and stored in the database.</p>

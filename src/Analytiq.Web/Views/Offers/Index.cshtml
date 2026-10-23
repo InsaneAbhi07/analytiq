@@ -1,0 +1,96 @@
+@model List<Offer>
+@{
+    ViewData["Title"] = "Offers";
+    List<Application> eligible = ViewBag.Eligible;
+}
+
+<div class="nx-page-head">
+    <div>
+        <h1>Offers</h1>
+        <p>Compensation is visible to Company Admins and Recruiters only. Acceptance is shown only once it's recorded.</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#offerModal"><i class="bi bi-plus-lg"></i> Prepare offer</button>
+</div>
+
+<div class="row g-3 mb-3">
+    @foreach (var st in new[] { OfferStatus.Draft, OfferStatus.Sent, OfferStatus.Accepted, OfferStatus.Declined, OfferStatus.Joined })
+    {
+        <div class="col-6 col-md">
+            <div class="nx-card nx-kpi">
+                <div class="nx-kpi-label"><span class="nx-badge @Ui.OfferBadge(st)">@st</span></div>
+                <div class="nx-kpi-value">@Model.Count(o => o.Status == st)</div>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="nx-card">
+    <div class="nx-table-wrap">
+        <table class="nx-table">
+            <thead><tr><th>Candidate</th><th>Designation</th><th class="text-end">Annual CTC</th><th>Joining</th><th>Sent</th><th>Status</th><th>Prepared by</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var o in Model)
+                {
+                    var c = o.Application.Candidate;
+                    <tr>
+                        <td><div class="nx-person">@Html.Avatar(c.Initials)<div><a class="nx-row-link nx-person-name" asp-controller="Candidates" asp-action="Details" asp-route-id="@o.ApplicationId">@c.FullName</a><span class="nx-person-sub">@o.Application.Job.Title</span></div></div></td>
+                        <td>@o.Designation</td>
+                        <td class="text-end tabular"><i class="bi bi-lock text-muted small me-1" title="Restricted field"></i>@Ui.Lakh(o.AnnualCtcLakh)</td>
+                        <td class="small">@o.ProposedJoining.ToString("dd MMM yyyy")</td>
+                        <td class="small text-muted">@(o.SentOn?.ToString("dd MMM yyyy") ?? "—")</td>
+                        <td>
+                            <span class="nx-badge @Ui.OfferBadge(o.Status)">@o.Status</span>
+                            @if (o.RespondedOn is { } r) { <div class="small text-muted mt-1">Responded @r.ToString("dd MMM")</div> }
+                        </td>
+                        <td class="small">@o.PreparedBy</td>
+                        <td class="text-end">
+                            <div class="dropdown">
+                                <button class="btn btn-ghost btn-sm btn-icon" data-bs-toggle="dropdown" aria-label="Offer actions"><i class="bi bi-three-dots"></i></button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    @if (o.Status == OfferStatus.Draft)
+                                    {
+                                        <li><a class="dropdown-item" href="#" data-toast="Offer editor would open here (prototype)." data-toast-variant="info"><i class="bi bi-pencil me-2"></i>Edit draft</a></li>
+                                        <li><a class="dropdown-item" href="#" data-confirm="The offer letter is emailed to the candidate with a secure response link." data-confirm-title="Send offer?" data-confirm-ok="Send offer" data-toast="Offer marked as sent (prototype)."><i class="bi bi-send me-2"></i>Send offer</a></li>
+                                    }
+                                    @if (o.Status == OfferStatus.Sent)
+                                    {
+                                        <li><a class="dropdown-item" href="#" data-confirm="Only record acceptance once you have it in writing from the candidate." data-confirm-title="Record acceptance?" data-confirm-ok="Record acceptance" data-confirm-reason data-toast="Acceptance recorded (prototype)."><i class="bi bi-check2-circle me-2"></i>Record acceptance</a></li>
+                                        <li><a class="dropdown-item" href="#" data-confirm="Record that the candidate declined this offer." data-confirm-title="Record decline?" data-confirm-ok="Record decline" data-confirm-variant="danger" data-confirm-reason data-toast="Decline recorded (prototype)."><i class="bi bi-x-circle me-2"></i>Record decline</a></li>
+                                    }
+                                    @if (o.Status == OfferStatus.Accepted)
+                                    {
+                                        <li><a class="dropdown-item" href="#" data-confirm="Confirm the candidate has joined." data-confirm-title="Confirm joining?" data-confirm-ok="Confirm joining" data-toast="Joining confirmed. Candidate marked as hired (prototype)."><i class="bi bi-person-check me-2"></i>Confirm joining</a></li>
+                                    }
+                                    <li><a class="dropdown-item" href="#" data-toast="Offer letter PDF would download here (prototype)." data-toast-variant="info"><i class="bi bi-file-earmark-pdf me-2"></i>Offer letter</a></li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="offerModal" tabindex="-1" aria-labelledby="offerTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <form class="modal-content needs-validation" asp-action="Create" method="post" novalidate>
+            <div class="modal-header"><h2 class="modal-title" id="offerTitle">Prepare offer</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+            <div class="modal-body row g-3">
+                <div class="col-12">
+                    <label class="form-label required" for="offerApp">Candidate</label>
+                    <select class="form-select" id="offerApp" name="applicationId" required>
+                        <option value="">Select…</option>
+                        @foreach (var a in eligible) { <option value="@a.Id">@a.Candidate.FullName · @a.Job.Title</option> }
+                    </select>
+                    <div class="form-text">Only candidates at the Interview stage without an existing offer are listed.</div>
+                </div>
+                <div class="col-md-6"><label class="form-label required" for="desig">Designation</label><input class="form-control" id="desig" required /></div>
+                <div class="col-md-3"><label class="form-label required" for="ctc">Annual CTC (₹ lakh)</label><input class="form-control" id="ctc" type="number" step="0.1" min="0" required /></div>
+                <div class="col-md-3"><label class="form-label required" for="join">Proposed joining</label><input class="form-control" id="join" type="date" required min="@DateTime.Today.ToString("yyyy-MM-dd")" /></div>
+                <div class="col-12"><label class="form-label" for="terms">Additional terms</label><textarea class="form-control" id="terms" rows="3" placeholder="Joining bonus, notice-period buyout, relocation…"></textarea></div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" type="submit">Save draft</button></div>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,392 @@
+@model CandidateProfileViewModel
+@{
+    var a = Model.Application;
+    var c = a.Candidate;
+    var s = a.Screening;
+    ViewData["Title"] = c.FullName;
+    var isOpen = a.Stage is not (ApplicationStage.Hired or ApplicationStage.Rejected or ApplicationStage.Withdrawn);
+}
+
+<div class="nx-breadcrumb"><a asp-action="Index">Candidates</a> / <a asp-controller="Jobs" asp-action="Details" asp-route-id="@a.JobId">@a.Job.Title</a> / @c.FullName</div>
+
+<div class="nx-card nx-card-body mb-3">
+    <div class="d-flex flex-wrap gap-3 align-items-center">
+        @Html.Avatar(c.Initials, "nx-avatar-lg")
+        <div class="flex-grow-1 min-w-0">
+            <h1 class="h4 mb-1 d-flex align-items-center gap-2 flex-wrap">@c.FullName <span class="nx-badge @Ui.StageBadge(a.Stage)" data-stage-badge>@Ui.StageLabel(a.Stage)</span></h1>
+            <div class="small text-muted d-flex flex-wrap gap-3">
+                <span><i class="bi bi-briefcase me-1"></i>@c.Headline</span>
+                <span><i class="bi bi-geo-alt me-1"></i>@c.Location</span>
+                <span><i class="bi bi-envelope me-1"></i>@c.Email</span>
+                <span><i class="bi bi-telephone me-1"></i>@c.Phone</span>
+                @if (c.LinkedIn is not null) { <span><i class="bi bi-linkedin me-1"></i>@c.LinkedIn</span> }
+                @if (c.Portfolio is not null) { <span><i class="bi bi-link-45deg me-1"></i>@c.Portfolio</span> }
+            </div>
+        </div>
+        @if (isOpen)
+        {
+            <div class="d-flex flex-wrap gap-2">
+                @if (a.Stage is ApplicationStage.New or ApplicationStage.Screening or ApplicationStage.OnHold or ApplicationStage.InfoRequested)
+                {
+                    <button class="btn btn-primary" data-stage-action="Shortlisted" data-badge="nx-badge-primary"><i class="bi bi-star"></i> Shortlist</button>
+                }
+                else if (a.Stage == ApplicationStage.Interview && Model.Offer is null)
+                {
+                    <a class="btn btn-primary" asp-controller="Offers" asp-action="Index"><i class="bi bi-envelope-paper"></i> Prepare offer</a>
+                }
+                <a class="btn btn-outline-secondary" asp-controller="Interviews" asp-action="Schedule" asp-route-applicationId="@a.Id"><i class="bi bi-calendar-plus"></i> Schedule interview</a>
+                <div class="btn-group">
+                    <button class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">More</button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#" data-stage-action="On hold" data-badge="nx-badge-warning" data-kind="warning" data-needs-reason><i class="bi bi-pause-circle me-2"></i>Put on hold</a></li>
+                        <li><a class="dropdown-item" href="#" data-stage-action="Info requested" data-badge="nx-badge-warning" data-kind="warning" data-needs-reason data-message="The candidate gets a secure link to add the requested information. Describe what you need."><i class="bi bi-question-circle me-2"></i>Request more information</a></li>
+                        <li><a class="dropdown-item" href="#" data-stage-action="Interview" data-badge="nx-badge-violet"><i class="bi bi-person-video3 me-2"></i>Move to interview</a></li>
+                        <li><a class="dropdown-item" href="#" data-stage-action="Withdrawn" data-badge="nx-badge-neutral" data-kind="warning" data-needs-reason data-message="Use this when the candidate has withdrawn their application."><i class="bi bi-box-arrow-left me-2"></i>Mark as withdrawn</a></li>
+                        <li><hr class="dropdown-divider" /></li>
+                        <li><a class="dropdown-item text-danger" href="#" data-stage-action="Rejected" data-badge="nx-badge-danger" data-kind="danger" data-variant="danger" data-needs-reason data-message="Rejection is a human decision. Record the job-related reason. The AI score alone is not a sufficient reason."><i class="bi bi-x-circle me-2"></i>Reject</a></li>
+                    </ul>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-xl-8">
+        <ul class="nav nx-tabs mb-3" role="tablist">
+            <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#t-screening" type="button" role="tab">Screening explanation</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t-resume" type="button" role="tab">Resume</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t-profile" type="button" role="tab">Extracted profile</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t-interviews" type="button" role="tab">Interviews &amp; offer <span class="nx-badge nx-badge-neutral ms-1">@Model.Interviews.Count</span></button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t-notes" type="button" role="tab">Notes <span class="nx-badge nx-badge-neutral ms-1">@a.Notes.Count</span></button></li>
+        </ul>
+
+        <div class="tab-content">
+            @* ---------------- Screening ---------------- *@
+            <div class="tab-pane fade show active" id="t-screening" role="tabpanel">
+                @if (a.Processing == ProcessingStatus.Failed)
+                {
+                    <div class="nx-card nx-card-body">
+                        <div class="nx-callout nx-callout-danger mb-3">
+                            <i class="bi bi-x-octagon"></i>
+                            <div><strong>Resume could not be processed.</strong> @a.ProcessingError. Tried 3 times. No score was produced, and the candidate has not been penalised for this.</div>
+                        </div>
+                        <p class="small text-muted">Options: ask the candidate to re-upload (they get a secure link), retry processing, or review the application manually.</p>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button class="btn btn-primary btn-sm" data-toast="Re-upload request sent to candidate via secure link (prototype)."><i class="bi bi-envelope"></i> Request re-upload</button>
+                            <button class="btn btn-outline-secondary btn-sm" data-toast="Processing retry queued (prototype)." data-toast-variant="info"><i class="bi bi-arrow-repeat"></i> Retry processing</button>
+                            <button class="btn btn-outline-secondary btn-sm" data-stage-action="In screening" data-badge="nx-badge-info"><i class="bi bi-person-check"></i> Review manually</button>
+                        </div>
+                    </div>
+                }
+                else if (s is null)
+                {
+                    <div class="nx-card nx-card-body">
+                        <div class="nx-callout nx-callout-info mb-3">
+                            <i class="bi @Ui.ProcessingIcon(a.Processing)"></i>
+                            <div><strong>Resume is @Ui.ProcessingLabel(a.Processing).ToLower().</strong> Text extraction and matching run in the background. This page updates when it's done, usually within a minute.</div>
+                        </div>
+                        <div class="nx-skeleton mb-2" style="height:18px;width:40%"></div>
+                        <div class="nx-skeleton mb-2" style="height:12px;width:90%"></div>
+                        <div class="nx-skeleton mb-2" style="height:12px;width:75%"></div>
+                        <div class="nx-skeleton" style="height:12px;width:60%"></div>
+                    </div>
+                }
+                else
+                {
+                    <div class="nx-card mb-3">
+                        <div class="nx-card-body">
+                            <div class="d-flex flex-wrap gap-4 align-items-center">
+                                @Html.Score(s.Score, "nx-score-lg")
+                                <div class="flex-grow-1" style="min-width:260px">
+                                    <div class="small text-muted mb-1">Job compatibility for <strong class="text-body">@a.Job.Title</strong></div>
+                                    @foreach (var comp in s.Components)
+                                    {
+                                        <div class="nx-component">
+                                            <span class="small fw-medium">@comp.Name <span class="text-muted fw-normal">· weight @comp.Weight%</span></span>
+                                            <span class="small tabular">@(comp.IsKnown ? $"{comp.Fraction!.Value * 100:0}%" : "Unknown")</span>
+                                            @if (comp.IsKnown)
+                                            {
+                                                <div class="nx-meter"><span style="width:@((comp.Fraction!.Value * 100).ToString("0"))%"></span></div>
+                                            }
+                                            else
+                                            {
+                                                <div class="nx-meter muted"><span style="width:100%;background:repeating-linear-gradient(45deg,#d0d5e0 0 4px,#eef0f4 4px 8px)"></span></div>
+                                            }
+                                            <span class="small text-muted" style="grid-column:1/-1">@comp.Detail</span>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                            @if (s.Warnings.Count > 0)
+                            {
+                                <div class="mt-3 d-grid gap-2">
+                                    @foreach (var w in s.Warnings)
+                                    {
+                                        <div class="nx-callout nx-callout-warning"><i class="bi bi-exclamation-triangle"></i><span>@w</span></div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                        <div class="nx-card-foot">
+                            <div class="nx-meta-grid">
+                                <div>Method<strong>Weighted skill & experience match</strong></div>
+                                <div>Model<strong>@s.ModelVersion</strong></div>
+                                <div>Configuration<strong>@s.ConfigVersion</strong></div>
+                                <div>Screened<strong>@s.ScreenedOn.ToString("dd MMM yyyy, HH:mm")</strong></div>
+                                <div>Parsing confidence<strong>@(c.ParsingConfidence is { } pc ? $"{pc}%" : "—")</strong></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-lg-6">
+                            <div class="nx-card h-100">
+                                <div class="nx-card-head"><h2>Required skills</h2><span class="small text-muted">@s.RequiredMatched.Count of @a.Job.RequiredSkills.Count evidenced</span></div>
+                                <div class="nx-card-body">
+                                    @foreach (var m in s.RequiredMatched)
+                                    {
+                                        <partial name="_Evidence" model="m" />
+                                    }
+                                    @foreach (var miss in s.RequiredMissing)
+                                    {
+                                        <div class="nx-evidence">
+                                            <div class="d-flex justify-content-between align-items-center"><strong>@miss</strong><span class="nx-chip nx-chip-missing">No evidence found</span></div>
+                                            <div class="small text-muted mt-1">The resume doesn't mention this skill or a closely related one. That doesn't mean the candidate lacks it, so verify at phone screen.</div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="nx-card h-100">
+                                <div class="nx-card-head"><h2>Preferred skills</h2><span class="small text-muted">@s.PreferredMatched.Count of @a.Job.PreferredSkills.Count evidenced</span></div>
+                                <div class="nx-card-body">
+                                    @foreach (var m in s.PreferredMatched)
+                                    {
+                                        <partial name="_Evidence" model="m" />
+                                    }
+                                    @if (s.PreferredMissing.Count > 0)
+                                    {
+                                        <div class="small text-muted mb-1">No evidence found for:</div>
+                                        <div class="nx-chips">@foreach (var miss in s.PreferredMissing) { <span class="nx-chip nx-chip-missing">@miss</span> }</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="nx-card nx-card-body mt-3 d-flex flex-wrap gap-2 align-items-center">
+                        <i class="bi bi-shield-check text-success"></i>
+                        <span class="small text-muted flex-grow-1">Name, photo, gender, age, religion, caste and location are not used. Instructions embedded in resume text are ignored.</span>
+                        <button class="btn btn-sm btn-outline-secondary" data-confirm="This records your corrected assessment alongside the AI result. Both are kept for audit." data-confirm-title="Override screening result?" data-confirm-ok="Save override" data-confirm-reason data-toast="Override recorded with your reason (prototype)."><i class="bi bi-pencil-square"></i> Override / correct</button>
+                        <button class="btn btn-sm btn-outline-secondary" data-toast="Re-screening queued with the current job configuration (uses 1 credit)." data-toast-variant="info"><i class="bi bi-arrow-repeat"></i> Re-run</button>
+                    </div>
+                }
+            </div>
+
+            @* ---------------- Resume ---------------- *@
+            <div class="tab-pane fade" id="t-resume" role="tabpanel">
+                <div class="nx-card">
+                    <div class="nx-card-head">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi @(c.ResumeFileName.EndsWith(".pdf") ? "bi-file-earmark-pdf text-danger" : "bi-file-earmark-word text-primary") fs-5"></i>
+                            <div><div class="small fw-medium">@c.ResumeFileName</div><div class="small text-muted">@c.ResumeSizeKb KB · uploaded @a.AppliedOn.ToString("dd MMM yyyy") · private storage</div></div>
+                        </div>
+                        <a class="btn btn-sm btn-outline-secondary" asp-action="Resume" asp-route-id="@a.Id"><i class="bi bi-download"></i> Download</a>
+                    </div>
+                    <div class="nx-card-body">
+                        @if (s is null)
+                        {
+                            <div class="nx-empty"><i class="bi bi-file-earmark-x"></i><h3>Preview unavailable</h3><p class="small mb-0">Text could not be extracted yet. Download the original file to review it.</p></div>
+                        }
+                        else
+                        {
+                            <div class="nx-resume-preview">
+                                <h4>@c.FullName</h4>
+                                <div>@c.Headline · @c.Location · @c.Email</div>
+                                <h5>Experience</h5>
+                                @foreach (var w in c.WorkHistory)
+                                {
+                                    <div class="mb-2"><strong>@w.Role</strong>, @w.Company <span class="text-muted">· @w.Period</span><div>@w.Summary</div></div>
+                                }
+                                <h5>Skills</h5>
+                                <div>@string.Join(" · ", c.Skills)</div>
+                                <h5>Education</h5>
+                                @foreach (var e in c.Education) { <div>@e</div> }
+                                @if (c.Certifications.Count > 0)
+                                {
+                                    <h5>Certifications</h5>
+                                    @foreach (var cert in c.Certifications) { <div>@cert</div> }
+                                }
+                                @if (c.Projects.Count > 0)
+                                {
+                                    <h5>Projects</h5>
+                                    @foreach (var p in c.Projects) { <div>@p</div> }
+                                }
+                            </div>
+                            <div class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i>Sanitised text preview. Active content, macros and embedded links in the original file are never executed.</div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            @* ---------------- Extracted profile ---------------- *@
+            <div class="tab-pane fade" id="t-profile" role="tabpanel">
+                <div class="nx-card">
+                    <div class="nx-card-head">
+                        <h2>Extracted information</h2>
+                        <button class="btn btn-sm btn-outline-secondary" data-toast="Edit mode would let you correct extracted fields; corrections are tracked." data-toast-variant="info"><i class="bi bi-pencil"></i> Correct data</button>
+                    </div>
+                    <div class="nx-card-body">
+                        <dl class="nx-dl">
+                            <dt>Total experience</dt><dd>@(c.ExperienceYears is { } y ? $"{y:0.#} years" : "Not reliably extracted")</dd>
+                            <dt>Skills (@c.Skills.Count)</dt><dd><div class="nx-chips">@foreach (var sk in c.Skills) { <span class="nx-chip">@sk</span> }</div></dd>
+                            <dt>Education</dt><dd>@foreach (var e in c.Education) { <div>@e</div> }@if (c.Education.Count == 0) { <span class="text-muted">—</span> }</dd>
+                            <dt>Certifications</dt><dd>@foreach (var cert in c.Certifications) { <div>@cert</div> }@if (c.Certifications.Count == 0) { <span class="text-muted">None found</span> }</dd>
+                            <dt>Work history</dt><dd>@foreach (var w in c.WorkHistory) { <div><strong>@w.Role</strong> · @w.Company <span class="text-muted">(@w.Period)</span></div> }@if (c.WorkHistory.Count == 0) { <span class="text-muted">—</span> }</dd>
+                            <dt>Projects</dt><dd>@foreach (var p in c.Projects) { <div>@p</div> }@if (c.Projects.Count == 0) { <span class="text-muted">None found</span> }</dd>
+                            <dt>Parsing confidence</dt><dd>@(c.ParsingConfidence is { } pc2 ? $"{pc2}%" : "—")</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+
+            @* ---------------- Interviews & offer ---------------- *@
+            <div class="tab-pane fade" id="t-interviews" role="tabpanel">
+                @if (Model.Interviews.Count == 0)
+                {
+                    <div class="nx-card nx-empty">
+                        <i class="bi bi-calendar2-x"></i><h3>No interviews yet</h3>
+                        <a class="btn btn-primary btn-sm mt-2" asp-controller="Interviews" asp-action="Schedule" asp-route-applicationId="@a.Id"><i class="bi bi-calendar-plus"></i> Schedule interview</a>
+                    </div>
+                }
+                @foreach (var i in Model.Interviews)
+                {
+                    <div class="nx-card mb-3">
+                        <div class="nx-card-head">
+                            <div><h3>Round @i.Round · @i.Title</h3><div class="nx-sub">@i.StartsAt.ToString("ddd dd MMM yyyy, h:mm tt") · @i.TimeZone · @i.Type · @i.Location</div></div>
+                            <span class="nx-badge @Ui.InterviewBadge(i.Status)">@Ui.InterviewLabel(i.Status)</span>
+                        </div>
+                        <div class="nx-card-body">
+                            <div class="small mb-2"><span class="text-muted">Interviewers:</span> @string.Join(", ", i.Interviewers)</div>
+                            @if (i.Feedback is { } f)
+                            {
+                                <div class="row g-2 small mb-2">
+                                    @foreach (var (k, v) in new[] { ("Technical skills", f.TechnicalSkills), ("Problem solving", f.ProblemSolving), ("Communication", f.Communication), ("Role knowledge", f.RoleKnowledge) })
+                                    {
+                                        <div class="col-6 col-md-3"><div class="text-muted">@k</div><div class="fw-semibold">@v / 5</div></div>
+                                    }
+                                </div>
+                                <div class="nx-evidence"><div class="d-flex justify-content-between"><strong>@f.Recommendation</strong><span class="text-muted small">@f.By · @f.SubmittedOn.ToString("dd MMM")</span></div><div class="nx-evidence-quote">@f.Evidence</div></div>
+                            }
+                            else if (i.Status == InterviewStatus.Scheduled)
+                            {
+                                <span class="small text-muted">Feedback opens after the interview.</span>
+                            }
+                        </div>
+                    </div>
+                }
+                @if (Model.Offer is { } o)
+                {
+                    <div class="nx-card">
+                        <div class="nx-card-head"><h3>Offer</h3><span class="nx-badge @Ui.OfferBadge(o.Status)">@o.Status</span></div>
+                        <div class="nx-card-body">
+                            <dl class="nx-dl">
+                                <dt>Designation</dt><dd>@o.Designation</dd>
+                                <dt>Annual CTC</dt><dd>@Ui.Lakh(o.AnnualCtcLakh) <span class="small text-muted"><i class="bi bi-lock"></i> visible to Admin &amp; Recruiter only</span></dd>
+                                <dt>Proposed joining</dt><dd>@o.ProposedJoining.ToString("dd MMM yyyy")</dd>
+                                <dt>Sent</dt><dd>@(o.SentOn?.ToString("dd MMM yyyy") ?? "Not sent")</dd>
+                            </dl>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            @* ---------------- Notes ---------------- *@
+            <div class="tab-pane fade" id="t-notes" role="tabpanel">
+                <div class="nx-card nx-card-body">
+                    <form data-note-form="#notesList" class="mb-3">
+                        <label class="form-label" for="noteText">Add a note <span class="text-muted fw-normal">· visible to recruiters in your company, not to the candidate</span></label>
+                        <textarea id="noteText" class="form-control mb-2" rows="3" placeholder="Keep notes factual and job-related."></textarea>
+                        <div class="invalid-feedback mb-2">Write something first.</div>
+                        <button class="btn btn-primary btn-sm" type="submit">Add note</button>
+                    </form>
+                    <div id="notesList">
+                        @foreach (var n in a.Notes.OrderByDescending(n => n.On))
+                        {
+                            <div class="border rounded-3 p-3 mb-2 bg-white">
+                                <div class="d-flex justify-content-between small mb-1"><strong>@n.By</strong><span class="text-muted">@n.On.ToString("dd MMM, HH:mm")</span></div>
+                                <div class="small">@n.Text</div>
+                            </div>
+                        }
+                        @if (a.Notes.Count == 0) { <p class="small text-muted mb-0">No notes yet.</p> }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4">
+        <div class="nx-card mb-3">
+            <div class="nx-card-head"><h2>Application</h2><span class="small text-muted">#@a.Id</span></div>
+            <div class="nx-card-body">
+                <dl class="nx-dl">
+                    <dt>Job</dt><dd><a asp-controller="Jobs" asp-action="Details" asp-route-id="@a.JobId">@a.Job.Title</a></dd>
+                    <dt>Applied</dt><dd>@a.AppliedOn.ToString("dd MMM yyyy, HH:mm")</dd>
+                    <dt>Source</dt><dd>@a.Source</dd>
+                    <dt>Processing</dt><dd><span class="nx-badge @Ui.ProcessingBadge(a.Processing)"><i class="bi @Ui.ProcessingIcon(a.Processing)"></i>@Ui.ProcessingLabel(a.Processing)</span></dd>
+                    <dt>Recruiter</dt>
+                    <dd>
+                        <select class="form-select form-select-sm" aria-label="Assigned recruiter" onchange="nx.toast('Reassigned to ' + this.value + ' (prototype).')">
+                            @foreach (var r in new[] { "Rahul Verma", "Simran Kaur", "Priya Sharma" }) { <option selected="@(r == a.AssignedRecruiter)">@r</option> }
+                        </select>
+                    </dd>
+                    <dt>Consent</dt><dd><i class="bi bi-check-circle text-success"></i> Privacy notice accepted @a.AppliedOn.ToString("dd MMM yyyy")</dd>
+                    <dt>Tracking code</dt><dd><code>@a.TrackingCode</code></dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="nx-card mb-3">
+            <div class="nx-card-head"><h2>Status history</h2></div>
+            <div class="nx-card-body">
+                <ul class="nx-timeline" data-history>
+                    @foreach (var h in a.History)
+                    {
+                        <li data-kind="@h.Kind">
+                            <div class="nx-tl-title">@h.Title</div>
+                            <div class="nx-tl-meta">@h.On.ToString("dd MMM, HH:mm") · @h.By</div>
+                            @if (h.Reason is not null) { <div class="nx-tl-reason">Reason: @h.Reason</div> }
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+
+        @if (Model.OtherApplications.Count > 0)
+        {
+            <div class="nx-card mb-3">
+                <div class="nx-card-head"><h2>Other applications</h2></div>
+                <ul class="nx-list">
+                    @foreach (var other in Model.OtherApplications)
+                    {
+                        <li>
+                            @Html.Score(other.Screening?.Score)
+                            <div class="flex-grow-1"><a class="fw-medium text-reset" asp-action="Details" asp-route-id="@other.Id">@other.Job.Title</a><div class="small text-muted">@other.AppliedOn.ToString("dd MMM yyyy")</div></div>
+                            <span class="nx-badge @Ui.StageBadge(other.Stage)">@Ui.StageLabel(other.Stage)</span>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <div class="nx-card nx-card-body">
+            <div class="small fw-semibold mb-2">Candidate data</div>
+            <div class="d-grid gap-2">
+                <button class="btn btn-sm btn-outline-secondary" data-toast="Data export prepared for the candidate's access request (prototype)." data-toast-variant="info"><i class="bi bi-file-earmark-arrow-down"></i> Export candidate data</button>
+                <button class="btn btn-sm btn-outline-secondary text-danger" data-confirm="This permanently deletes the candidate's resume, extracted data and applications at this company once the retention hold (if any) clears. Audit entries are kept without personal data." data-confirm-title="Process deletion request?" data-confirm-ok="Schedule deletion" data-confirm-variant="danger" data-confirm-reason data-toast="Deletion scheduled and logged (prototype)."><i class="bi bi-trash"></i> Process deletion request</button>
+            </div>
+        </div>
+    </div>
+</div>

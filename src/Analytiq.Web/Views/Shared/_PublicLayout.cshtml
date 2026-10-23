@@ -1,0 +1,67 @@
+@inject MockDataStore Data
+@{
+    // "careers" = a company's public careers portal; otherwise the Analytiq marketing site.
+    var isCareers = (ViewData["Public"] as string) == "careers";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <partial name="_Head" />
+</head>
+<body data-toast="@TempData["Toast"]" data-toast-variant="@TempData["ToastVariant"]">
+    <a class="visually-hidden-focusable position-absolute m-2 btn btn-primary" href="#main">Skip to content</a>
+    <div class="nx-public">
+        <header class="nx-public-nav">
+            <div class="container">
+                @if (isCareers)
+                {
+                    <a class="nx-brand" asp-controller="Careers" asp-action="Index">
+                        <span class="nx-company-logo" style="width:34px;height:34px;font-size:.8rem;border-radius:8px">ZF</span>
+                        <span>@Data.Company.Name<small>Careers</small></span>
+                    </a>
+                    <nav class="ms-auto d-flex align-items-center gap-1">
+                        <a class="nav-link px-2" asp-controller="Careers" asp-action="Index">Open roles</a>
+                        <a class="nav-link px-2" asp-controller="Careers" asp-action="Status">Track application</a>
+                    </nav>
+                }
+                else
+                {
+                    <a class="nx-brand" asp-controller="Home" asp-action="Index">
+                        <span class="nx-brand-mark">N</span>
+                        <span>Analytiq<small>by Abhishek Singh</small></span>
+                    </a>
+                    <nav class="ms-auto d-none d-md-flex align-items-center gap-1">
+                        <a class="nav-link px-2" href="~/#features">Features</a>
+                        <a class="nav-link px-2" href="~/#responsible-ai">Responsible AI</a>
+                        <a class="nav-link px-2" href="~/#pricing">Pricing</a>
+                        <a class="nav-link px-2" asp-controller="Careers" asp-action="Index">Sample careers page</a>
+                    </nav>
+                    <div class="d-flex gap-2 ms-auto ms-md-2">
+                        <a class="btn btn-outline-secondary btn-sm" asp-controller="Account" asp-action="Login">Sign in</a>
+                        <a class="btn btn-primary btn-sm" asp-controller="Account" asp-action="Register">Start free trial</a>
+                    </div>
+                }
+            </div>
+        </header>
+        <main id="main" tabindex="-1">
+            @RenderBody()
+        </main>
+        <footer class="nx-public-foot">
+            <div class="container d-flex flex-wrap gap-3 justify-content-between align-items-center">
+                @if (isCareers)
+                {
+                    <span>© @DateTime.Today.Year @Data.Company.Name · <a asp-controller="Careers" asp-action="Privacy">Candidate privacy notice</a> · <a asp-controller="Careers" asp-action="Status">Data correction or deletion request</a></span>
+                    <span>Powered by <a asp-controller="Home" asp-action="Index">Analytiq</a></span>
+                }
+                else
+                {
+                    <span>© @DateTime.Today.Year Abhishek Singh</span>
+                    <span><span class="nx-proto-chip"><i class="bi bi-cone-striped"></i> UI prototype · mock data</span></span>
+                }
+            </div>
+        </footer>
+    </div>
+    <partial name="_Overlays" />
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

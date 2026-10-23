@@ -1,0 +1,191 @@
+@model AnalyticsViewModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Analytics";
+    string? dept = ViewBag.Department;
+    int days = ViewBag.Days;
+    List<string> departments = ViewBag.Departments;
+    var maxFunnel = Math.Max(1, Model.Funnel.First().Count);
+    var smallSample = Model.TotalApplications < 30;
+
+    string Chart(object cfg) => JsonSerializer.Serialize(cfg);
+    var perJob = Chart(new { type = "bar", horizontal = true, data = new { labels = Model.JobLabels, datasets = new[] { new { label = "Applications", data = Model.ApplicationsPerJob } } } });
+    var byDept = Chart(new
+    {
+        type = "bar",
+        data = new { labels = Model.DepartmentLabels, datasets = Model.DepartmentActivity.Select((s, i) => new { label = s.Label, data = s.Values, slot = i }).ToArray() }
+    });
+    var processing = Chart(new
+    {
+        type = "bar", stacked = true,
+        data = new
+        {
+            labels = Model.WeekLabels,
+            datasets = new object[]
+            {
+                new { label = "Screened", data = Model.WeeklyProcessed, color = "#2a78d6" },
+                new { label = "Failed", data = Model.WeeklyFailed, color = "#e34948" },
+            }
+        }
+    });
+    var sources = Chart(new { type = "doughnut", data = new { labels = Model.SourceLabels, datasets = new[] { new { label = "Applications", data = Model.SourceCounts } } } });
+    string[] palette = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300"];
+}
+
+<div class="nx-page-head">
+    <div>
+        <h1>Recruitment analytics</h1>
+        <p>Applications received in the selected period, across jobs you're permitted to see.</p>
+    </div>
+    <form method="get" class="d-flex gap-2 flex-wrap">
+        <select class="form-select form-select-sm" name="days" onchange="this.form.submit()" aria-label="Date range" style="width:auto">
+            @foreach (var (v, l) in new[] { (30, "Last 30 days"), (90, "Last 90 days"), (365, "Last 12 months") }) { <option value="@v" selected="@(v == days)">@l</option> }
+        </select>
+        <select class="form-select form-select-sm" name="department" onchange="this.form.submit()" aria-label="Department" style="width:auto">
+            <option value="">All departments</option>
+            @foreach (var d in departments) { <option selected="@(d == dept)">@d</option> }
+        </select>
+        <button class="btn btn-sm btn-outline-secondary" type="button" data-toast="CSV export of these metrics queued (prototype)." data-toast-variant="info"><i class="bi bi-download"></i> Export</button>
+    </form>
+</div>
+
+@if (smallSample)
+{
+    <div class="nx-callout nx-callout-neutral mb-3">
+        <i class="bi bi-info-circle"></i>
+        <span><strong>Small sample (@Model.TotalApplications applications).</strong> Counts are exact, but percentages and averages can swing a lot with a single candidate. Read trends with caution.</span>
+    </div>
+}
+
+<div class="row g-3 mb-3">
+    @{
+        var tth = Model.TimeToHireSamples;
+        var kpis = new (string Label, string Value, string Def)[]
+        {
+            ("Applications", Model.TotalApplications.ToString(), "Applications submitted in the period"),
+            ("Screening completion", $"{Model.ScreeningCompletionRate:0}%", $"{Model.Screened} of {Model.TotalApplications} resumes processed with a score"),
+            ("Awaiting review", Model.AwaitingReview.ToString(), "Processed, still at ‘New’ with no recruiter decision"),
+            ("Interviews", Model.InterviewsScheduled.ToString(), "Scheduled or held, excluding cancelled"),
+            ("Offers made", Model.OffersMade.ToString(), "Offers sent (drafts excluded)"),
+            ("Hires", Model.Hires.ToString(), "Applications marked Hired"),
+            ("Time to hire", tth.Count == 0 ? "—" : $"{tth.Order().ElementAt(tth.Count / 2)} days", tth.Count < 5 ? $"Median of applied → hired. Only {tth.Count} hire(s), so not representative" : "Median days from application to hire"),
+        };
+    }
+    @foreach (var k in kpis)
+    {
+        <div class="col-6 col-md-4 col-xl">
+            <div class="nx-card nx-kpi">
+                <div class="nx-kpi-label">@k.Label <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="@k.Def"></i></div>
+                <div class="nx-kpi-value">@k.Value</div>
+                <div class="nx-kpi-foot text-truncate" title="@k.Def">@k.Def</div>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-5">
+        <div class="nx-card h-100">
+            <div class="nx-card-head"><div><h2>Funnel</h2><div class="nx-sub">Count of applications that reached each stage</div></div></div>
+            <div class="nx-card-body">
+                @for (var i = 0; i < Model.Funnel.Count; i++)
+                {
+                    var step = Model.Funnel[i];
+                    var prev = i == 0 ? step.Count : Model.Funnel[i - 1].Count;
+                    <div class="nx-funnel-row">
+                        <span class="text-muted">@step.Label</span>
+                        <div class="nx-meter"><span style="width:@((step.Count * 100.0 / maxFunnel).ToString("0.#"))%;background:@(new[] { "#86b6ef", "#6da7ec", "#5598e7", "#3987e5", "#2a78d6", "#1c5cab" }[i])"></span></div>
+                        <span class="text-end fw-medium tabular" title="@(i > 0 && !smallSample && prev > 0 ? $"{step.Count * 100.0 / prev:0}% of previous stage" : "")">@step.Count</span>
+                    </div>
+                }
+                <p class="small text-muted mt-3 mb-0">Stage-to-stage conversion percentages appear once there are at least 30 applications in the period.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="nx-card h-100">
+            <div class="nx-card-head"><div><h2>Applications per job</h2><div class="nx-sub">In the selected period</div></div></div>
+            <div class="nx-card-body"><div class="nx-chart"><canvas data-chart="@perJob" role="img" aria-label="Applications per job"></canvas></div></div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-7">
+        <div class="nx-card h-100">
+            <div class="nx-card-head">
+                <div><h2>Activity by department</h2><div class="nx-sub">Applications, and how many reached interview and offer</div></div>
+                <div class="nx-legend">@for (var i = 0; i < Model.DepartmentActivity.Count; i++) { <span><i style="background:@palette[i]"></i>@Model.DepartmentActivity[i].Label</span> }</div>
+            </div>
+            <div class="nx-card-body"><div class="nx-chart"><canvas data-chart="@byDept" role="img" aria-label="Activity by department"></canvas></div></div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="nx-card h-100">
+            <div class="nx-card-head"><div><h2>Application sources</h2><div class="nx-sub">Where candidates applied from</div></div></div>
+            <div class="nx-card-body d-flex align-items-center gap-3 flex-wrap">
+                <div class="nx-chart sm" style="width:180px"><canvas data-chart="@sources" role="img" aria-label="Application sources"></canvas></div>
+                <ul class="list-unstyled small mb-0 flex-grow-1">
+                    @for (var i = 0; i < Model.SourceLabels.Count; i++)
+                    {
+                        <li class="d-flex justify-content-between py-1 border-bottom"><span><span class="nx-swatch me-2" style="background:@palette[i]"></span>@Model.SourceLabels[i]</span><span class="tabular fw-medium">@Model.SourceCounts[i]</span></li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-7">
+        <div class="nx-card h-100">
+            <div class="nx-card-head">
+                <div><h2>Resume processing</h2><div class="nx-sub">Weekly outcomes from the local AI service</div></div>
+                <div class="nx-legend"><span><i style="background:#2a78d6"></i>Screened</span><span><i style="background:#e34948"></i>Failed</span></div>
+            </div>
+            <div class="nx-card-body"><div class="nx-chart sm"><canvas data-chart="@processing" role="img" aria-label="Weekly resume processing outcomes"></canvas></div></div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="nx-card h-100">
+            <div class="nx-card-head"><div><h2>AI usage &amp; cost</h2><div class="nx-sub">This billing period</div></div></div>
+            <div class="nx-card-body">
+                <div class="d-flex justify-content-between small mb-1"><span>Resume-processing credits</span><span class="tabular fw-medium">@Model.CreditsUsed / @Model.CreditsLimit</span></div>
+                <div class="nx-meter ai mb-3"><span style="width:@(Model.CreditsUsed * 100 / Math.Max(1, Model.CreditsLimit))%"></span></div>
+                <dl class="nx-dl">
+                    <dt>Inference</dt><dd>Local · all-MiniLM-L6-v2</dd>
+                    <dt>External AI API spend</dt><dd>₹0.00 <span class="small text-muted">(no external provider configured)</span></dd>
+                    <dt>Avg. processing time</dt><dd>2.3 s per resume</dd>
+                    <dt>Failure rate</dt><dd>@(Model.TotalApplications == 0 ? "—" : $"{Model.Processing[ProcessingStatus.Failed] * 100.0 / Model.TotalApplications:0}%") <span class="small text-muted">(@Model.Processing[ProcessingStatus.Failed] failed)</span></dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="nx-card">
+    <div class="nx-card-head"><h2>By job</h2></div>
+    <div class="nx-table-wrap">
+        <table class="nx-table">
+            <thead><tr><th>Job</th><th>Status</th><th class="text-end">Applicants</th><th class="text-end">Avg. match</th><th class="text-end">Shortlisted</th><th class="text-end">Interviewed</th></tr></thead>
+            <tbody>
+                @foreach (var (job, n, avg, sl, iv) in Model.JobTable)
+                {
+                    <tr>
+                        <td><a class="nx-row-link" asp-controller="Jobs" asp-action="Details" asp-route-id="@job.Id">@job.Title</a><div class="small text-muted">@job.Department</div></td>
+                        <td><span class="nx-badge @Ui.JobBadge(job.Status)">@job.Status</span></td>
+                        <td class="text-end tabular">@n</td>
+                        <td class="text-end tabular">@(avg is null ? "—" : avg.Value.ToString("0"))</td>
+                        <td class="text-end tabular">@sl</td>
+                        <td class="text-end tabular">@iv</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="~/js/charts.js" asp-append-version="true"></script>
+}

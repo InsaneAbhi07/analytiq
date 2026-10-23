@@ -1,0 +1,151 @@
+@model Job
+@inject MockDataStore Data
+@{
+    ViewData["Title"] = Model.Title;
+    var apps = Data.ApplicationsFor(Model.Id).OrderByDescending(a => a.Screening?.Score ?? -1).ToList();
+    var columns = new[]
+    {
+        ("New", new[] { ApplicationStage.New, ApplicationStage.Screening }),
+        ("Shortlisted", new[] { ApplicationStage.Shortlisted, ApplicationStage.OnHold, ApplicationStage.InfoRequested }),
+        ("Interview", new[] { ApplicationStage.Interview }),
+        ("Offer / Hired", new[] { ApplicationStage.Offer, ApplicationStage.Hired }),
+        ("Closed", new[] { ApplicationStage.Rejected, ApplicationStage.Withdrawn }),
+    };
+}
+
+<div class="nx-breadcrumb"><a asp-action="Index">Jobs</a> / @Model.Title</div>
+<div class="nx-page-head">
+    <div>
+        <h1 class="d-flex align-items-center gap-2 flex-wrap">@Model.Title <span class="nx-badge @Ui.JobBadge(Model.Status)">@Model.Status</span></h1>
+        <p>@Model.Department · @Model.Location · @Model.WorkMode · @Model.EmploymentType · @Model.Openings opening(s) · closes @Model.Deadline.ToString("dd MMM yyyy")</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        @if (Model.Status == JobStatus.Published)
+        {
+            <a class="btn btn-outline-secondary" asp-controller="Careers" asp-action="Job" asp-route-id="@Model.Id" target="_blank"><i class="bi bi-box-arrow-up-right"></i> Public page</a>
+            <button class="btn btn-outline-secondary" type="button" data-toast="Application link copied: careers.analytiq.ai/@Data.Company.Slug/@Model.Slug"><i class="bi bi-link-45deg"></i> Copy link</button>
+        }
+        <a class="btn btn-outline-secondary" asp-action="Edit" asp-route-id="@Model.Id"><i class="bi bi-pencil"></i> Edit</a>
+        <a class="btn btn-primary" asp-controller="Candidates" asp-action="Index" asp-route-jobId="@Model.Id"><i class="bi bi-people"></i> Screen applicants</a>
+    </div>
+</div>
+
+<ul class="nav nx-tabs mb-3" role="tablist">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#pipeline" type="button" role="tab">Pipeline <span class="nx-badge nx-badge-neutral ms-1">@apps.Count</span></button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#details" type="button" role="tab">Job details</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#criteria" type="button" role="tab">Screening criteria</button></li>
+</ul>
+
+<div class="tab-content">
+    <div class="tab-pane fade show active" id="pipeline" role="tabpanel">
+        @if (apps.Count == 0)
+        {
+            <div class="nx-card nx-empty">
+                <i class="bi bi-inbox"></i>
+                <h3>No applications yet</h3>
+                <p class="small">@(Model.Status == JobStatus.Draft ? "Publish this job to start receiving applications." : "Share the application link to start receiving applications.")</p>
+                @if (Model.Status == JobStatus.Draft)
+                {
+                    <button class="btn btn-primary btn-sm" data-confirm="The job will appear on your public careers page." data-confirm-title="Publish this job?" data-confirm-ok="Publish" data-toast="Job published (prototype)."><i class="bi bi-send"></i> Publish job</button>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="row g-3 flex-nowrap overflow-auto pb-2">
+                @foreach (var (title, stages) in columns)
+                {
+                    var col = apps.Where(a => stages.Contains(a.Stage)).ToList();
+                    <div class="col" style="min-width:250px">
+                        <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                            <span class="small fw-semibold">@title</span>
+                            <span class="nx-badge nx-badge-neutral">@col.Count</span>
+                        </div>
+                        @foreach (var a in col)
+                        {
+                            <a class="nx-card d-block p-3 mb-2 text-reset nx-job-card" asp-controller="Candidates" asp-action="Details" asp-route-id="@a.Id">
+                                <div class="d-flex gap-2 align-items-center">
+                                    @Html.Score(a.Screening?.Score)
+                                    <div class="min-w-0">
+                                        <div class="fw-medium text-truncate">@a.Candidate.FullName</div>
+                                        <div class="small text-muted">@Ui.Ago(a.AppliedOn)</div>
+                                    </div>
+                                </div>
+                                <div class="mt-2 d-flex gap-1 flex-wrap">
+                                    <span class="nx-badge @Ui.StageBadge(a.Stage)">@Ui.StageLabel(a.Stage)</span>
+                                    @if (a.Processing != ProcessingStatus.Completed)
+                                    {
+                                        <span class="nx-badge @Ui.ProcessingBadge(a.Processing)"><i class="bi @Ui.ProcessingIcon(a.Processing)"></i>@Ui.ProcessingLabel(a.Processing)</span>
+                                    }
+                                </div>
+                            </a>
+                        }
+                        @if (col.Count == 0)
+                        {
+                            <div class="border rounded-3 p-3 text-center small text-muted" style="border-style:dashed!important">None</div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <div class="tab-pane fade" id="details" role="tabpanel">
+        <div class="row g-3">
+            <div class="col-lg-8">
+                <div class="nx-card nx-card-body nx-prose">
+                    <h2 class="mt-0">About the role</h2>
+                    <p>@Model.Summary</p>
+                    <h2>Responsibilities</h2>
+                    <ul>@foreach (var r in Model.Responsibilities) { <li>@r</li> }</ul>
+                    <h2>Education</h2>
+                    <p class="mb-0">@Model.Education</p>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="nx-card nx-card-body">
+                    <dl class="nx-dl">
+                        <dt>Hiring manager</dt><dd>@Model.HiringManager</dd>
+                        <dt>Recruiter</dt><dd>@Model.Recruiter</dd>
+                        <dt>Experience</dt><dd>@Model.MinExperience–@Model.MaxExperience years</dd>
+                        <dt>Salary range</dt><dd>@Model.Salary <span class="small text-muted">(shown to candidates)</span></dd>
+                        <dt>Openings</dt><dd>@Model.Openings</dd>
+                        <dt>Created</dt><dd>@Model.CreatedOn.ToString("dd MMM yyyy")</dd>
+                        <dt>Deadline</dt><dd>@Model.Deadline.ToString("dd MMM yyyy")</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="criteria" role="tabpanel">
+        <div class="row g-3">
+            <div class="col-lg-7">
+                <div class="nx-card">
+                    <div class="nx-card-head"><h2>Skills used for matching</h2></div>
+                    <div class="nx-card-body">
+                        <div class="small fw-semibold mb-2">Required <span class="text-muted fw-normal">· @MockDataStore.RequiredWeight% of score</span></div>
+                        <div class="nx-chips mb-3">@foreach (var s in Model.RequiredSkills) { <span class="nx-chip">@s</span> }</div>
+                        <div class="small fw-semibold mb-2">Preferred <span class="text-muted fw-normal">· @MockDataStore.PreferredWeight% of score</span></div>
+                        <div class="nx-chips mb-3">@foreach (var s in Model.PreferredSkills) { <span class="nx-chip">@s</span> }</div>
+                        <div class="small fw-semibold mb-2">Experience <span class="text-muted fw-normal">· @MockDataStore.ExperienceWeight% of score</span></div>
+                        <p class="small mb-0">@Model.MinExperience–@Model.MaxExperience years. Pro-rated below the minimum, and not penalised above the maximum.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="nx-callout nx-callout-ai mb-3">
+                    <i class="bi bi-stars"></i>
+                    <div>
+                        <strong>How matching works</strong>
+                        <div class="mt-1">Exact skill matches get full credit. Related skills found by the local embedding model (similarity ≥ @MockDataStore.SemanticThreshold.ToString("0.00")) get @((MockDataStore.SemanticCredit * 100).ToString("0"))% credit and are flagged for you to verify. Criteria that can't be extracted reliably are excluded, not guessed.</div>
+                    </div>
+                </div>
+                <div class="nx-callout nx-callout-neutral">
+                    <i class="bi bi-shield-check"></i>
+                    <div>Scores are a sorting aid, not a decision. Name, photo, gender, age, religion, caste and location are never used in scoring. Change company-wide weights under <a asp-controller="Settings" asp-action="Index" asp-route-tab="screening">Settings → Screening</a>.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

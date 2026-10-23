@@ -1,0 +1,91 @@
+@model MockDataStore
+@{
+    ViewData["Title"] = "Billing & usage";
+    var sub = Model.Subscription;
+    var plan = Model.Plans.First(p => p.Name == sub.Plan);
+    var daysLeft = (sub.RenewsOn - Model.Today).Days;
+}
+
+<div class="nx-page-head">
+    <div>
+        <h1>Billing &amp; usage</h1>
+        <p>Manage your subscription, usage limits and invoices.</p>
+    </div>
+    <a class="btn btn-primary" asp-action="Plans"><i class="bi bi-arrow-up-circle"></i> Change plan</a>
+</div>
+
+<div class="nx-callout nx-callout-warning mb-3">
+    <i class="bi bi-cone-striped"></i>
+    <span><strong>Demo billing mode.</strong> No payment gateway credentials are configured, so no real charges are made and no payment is shown as successful without provider confirmation. A real gateway can be added later behind the payment-provider interface.</span>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-5">
+        <div class="nx-card h-100">
+            <div class="nx-card-head"><h2>Current plan</h2><span class="nx-badge nx-badge-success">@sub.Status</span></div>
+            <div class="nx-card-body">
+                <div class="d-flex align-items-baseline gap-2">
+                    <div class="fs-3 fw-bold">@sub.Plan</div>
+                    <div class="text-muted">· @sub.Cycle</div>
+                </div>
+                <div class="nx-plan-price mt-1">@Ui.Inr(plan.MonthlyPrice ?? 0)<small> / month + GST · sample price</small></div>
+                <div class="nx-divider"></div>
+                <dl class="nx-dl">
+                    <dt>Billing period</dt><dd>@sub.PeriodStart.ToString("dd MMM") – @sub.RenewsOn.AddDays(-1).ToString("dd MMM yyyy")</dd>
+                    <dt>Renews on</dt><dd>@sub.RenewsOn.ToString("dd MMM yyyy") <span class="small text-muted">(in @daysLeft days)</span></dd>
+                    <dt>Payment status</dt><dd>@sub.PaymentStatus</dd>
+                    <dt>Payment method</dt><dd><span class="text-muted">None, demo mode</span></dd>
+                    <dt>Grace period</dt><dd>7 days after a failed renewal, then the workspace becomes read-only</dd>
+                </dl>
+                <div class="d-flex gap-2 mt-3 flex-wrap">
+                    <a class="btn btn-outline-secondary btn-sm" asp-action="Plans">Compare plans</a>
+                    <button class="btn btn-outline-secondary btn-sm" data-confirm="Your plan stays active until @sub.RenewsOn.ToString("dd MMM yyyy"). After that the workspace becomes read-only and data is kept according to your retention policy." data-confirm-title="Cancel subscription?" data-confirm-ok="Cancel at period end" data-confirm-variant="danger" data-toast="Cancellation scheduled for end of period (prototype).">Cancel subscription</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="nx-card h-100">
+            <div class="nx-card-head"><div><h2>Usage this period</h2><div class="nx-sub">Limits are enforced on the server. At 100%, new actions of that type are blocked until upgrade or renewal.</div></div></div>
+            <div class="nx-card-body">
+                @foreach (var u in sub.Usage)
+                {
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="fw-medium"><i class="bi @u.Icon me-2 text-muted"></i>@u.Name</span>
+                            <span class="tabular">@u.Used@(u.Unit == "" ? "" : " " + u.Unit) of @u.Limit@(u.Unit == "" ? "" : " " + u.Unit) <span class="text-muted">(@u.Percent%)</span></span>
+                        </div>
+                        <div class="nx-meter @(u.Percent >= 100 ? "over" : u.Percent >= 80 ? "warn" : "")"><span style="width:@Math.Min(100, u.Percent)%"></span></div>
+                        @if (u.Percent >= 80)
+                        {
+                            <div class="small mt-1" style="color:var(--nx-warning)"><i class="bi bi-exclamation-triangle"></i> Approaching limit. Admins are notified at 80% and 100%.</div>
+                        }
+                    </div>
+                }
+                <div class="small text-muted">Advanced AI features (AI job-description drafts, custom scoring weights): <strong class="text-body">@(plan.AdvancedAi ? "included" : "not included on Growth")</strong></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="nx-card">
+    <div class="nx-card-head"><h2>Billing history</h2><span class="small text-muted">GST invoices</span></div>
+    <div class="nx-table-wrap">
+        <table class="nx-table">
+            <thead><tr><th>Invoice</th><th>Issued</th><th>Period</th><th class="text-end">Amount (incl. GST)</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var inv in Model.Invoices)
+                {
+                    <tr>
+                        <td class="fw-medium">@inv.Number</td>
+                        <td class="small">@inv.IssuedOn.ToString("dd MMM yyyy")</td>
+                        <td class="small text-muted">@inv.Period</td>
+                        <td class="text-end tabular">@Ui.Inr(inv.Amount)</td>
+                        <td><span class="nx-badge nx-badge-success">@inv.Status</span> <span class="nx-badge nx-badge-outline">demo</span></td>
+                        <td class="text-end"><button class="btn btn-sm btn-ghost" data-toast="Invoice PDF would download here (prototype)." data-toast-variant="info"><i class="bi bi-download"></i> PDF</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,17 @@
+@inject MockDataStore Data
+@{ ViewData["Title"] = "Candidate privacy notice"; }
+<div class="container py-5 nx-prose" style="max-width:760px">
+    <div class="nx-callout nx-callout-warning mb-4"><i class="bi bi-cone-striped"></i><span>Sample text for the prototype. Each company configures its own notice, and it should be reviewed by a legal professional.</span></div>
+    <h1 class="h3">Candidate privacy notice</h1>
+    <p>@Data.Company.Name ("we") uses Analytiq to manage job applications. This notice explains what we collect, why, and your choices.</p>
+    <h2>What we collect</h2>
+    <p>Your name, contact details, resume, answers to application questions and any links you provide. We don't ask for your photo, date of birth, religion, caste, marital status or other information unrelated to the job.</p>
+    <h2>How we use it</h2>
+    <p>Only to assess your application for the role you applied for and to contact you about it. An automated tool extracts skills and experience from your resume and compares them with the job's stated requirements to help recruiters review applications. It doesn't make decisions. A person reviews every application and makes every hiring decision.</p>
+    <h2>Who can see it</h2>
+    <p>Only authorised members of our hiring team. Interviewers see only what they need for your interview. Your resume is not sent to third-party AI services.</p>
+    <h2>How long we keep it</h2>
+    <p>If you're not hired, we delete your data 12 months after the role closes, unless you opted in to be considered for future roles.</p>
+    <h2>Your choices</h2>
+    <p>You can ask to see, correct or delete your data, or withdraw your application at any time, from the <a asp-action="Status">application tracking page</a>.</p>
+</div>

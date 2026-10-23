@@ -1,0 +1,231 @@
+@model DashboardViewModel
+@inject MockDataStore Data
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Dashboard";
+    var greeting = DateTime.Now.Hour < 12 ? "Good morning" : DateTime.Now.Hour < 17 ? "Good afternoon" : "Good evening";
+    var maxFunnel = Math.Max(1, Model.Funnel.First().Count);
+    var weeklyChart = JsonSerializer.Serialize(new
+    {
+        type = "bar",
+        data = new { labels = Model.WeekLabels, datasets = new[] { new { label = "Applications", data = Model.WeeklyApplications } } }
+    });
+}
+
+<div class="nx-page-head">
+    <div>
+        <h1>@greeting, @Data.CurrentUser.Name.Split(' ')[0]</h1>
+        <p>@DateTime.Today.ToString("dddd, dd MMMM yyyy") · Here is where your hiring stands today.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-outline-secondary" asp-controller="Candidates" asp-action="Index"><i class="bi bi-funnel"></i> Review candidates</a>
+        <a class="btn btn-primary" asp-controller="Jobs" asp-action="Create"><i class="bi bi-plus-lg"></i> Create job</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    @{
+        var kpis = new[]
+        {
+            ("Open jobs", Model.OpenJobs.ToString(), "Published on careers page", "bi-briefcase", Url.Action("Index", "Jobs")),
+            ("Applications", Model.Applications30d.ToString(), "Last 30 days", "bi-inbox", Url.Action("Index", "Candidates")),
+            ("Awaiting review", Model.AwaitingReview.ToString(), "New, processed, no decision yet", "bi-hourglass-split", Url.Action("Index", "Candidates")),
+            ("Interviews", Model.InterviewsNext7d.ToString(), "Scheduled in the next 7 days", "bi-calendar2-week", Url.Action("Index", "Interviews")),
+            ("Offers outstanding", Model.OffersOutstanding.ToString(), "Draft or awaiting response", "bi-envelope-paper", Url.Action("Index", "Offers")),
+            ("Hires", Model.Hires90d.ToString(), "Last 90 days", "bi-person-check", Url.Action("Index", "Analytics")),
+        };
+    }
+    @foreach (var (label, value, foot, icon, href) in kpis)
+    {
+        <div class="col-6 col-md-4 col-xl-2">
+            <a href="@href" class="nx-card nx-kpi d-block text-reset" style="text-decoration:none">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="nx-kpi-label">@label</div>
+                    <span class="nx-kpi-icon"><i class="bi @icon"></i></span>
+                </div>
+                <div class="nx-kpi-value">@value</div>
+                <div class="nx-kpi-foot">@foot</div>
+            </a>
+        </div>
+    }
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-7">
+        <div class="nx-card h-100">
+            <div class="nx-card-head">
+                <div>
+                    <h2>Applications received</h2>
+                    <div class="nx-sub">Weekly, last 8 weeks · all jobs</div>
+                </div>
+                <a class="small" asp-controller="Analytics" asp-action="Index">Open analytics <i class="bi bi-arrow-right"></i></a>
+            </div>
+            <div class="nx-card-body">
+                <div class="nx-chart"><canvas data-chart="@weeklyChart" aria-label="Bar chart of weekly applications" role="img"></canvas></div>
+                <details class="mt-2 small">
+                    <summary class="text-muted">View as table</summary>
+                    <table class="nx-table mt-2"><thead><tr><th>Week starting</th><th class="text-end">Applications</th></tr></thead>
+                        <tbody>@for (var i = 0; i < Model.WeekLabels.Count; i++) { <tr><td>@Model.WeekLabels[i]</td><td class="text-end tabular">@Model.WeeklyApplications[i]</td></tr> }</tbody>
+                    </table>
+                </details>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="nx-card h-100">
+            <div class="nx-card-head">
+                <div>
+                    <h2>Recruitment funnel</h2>
+                    <div class="nx-sub">Applications from the last 30 days, by furthest stage reached</div>
+                </div>
+            </div>
+            <div class="nx-card-body">
+                @for (var i = 0; i < Model.Funnel.Count; i++)
+                {
+                    var step = Model.Funnel[i];
+                    var pct = step.Count * 100.0 / maxFunnel;
+                    <div class="nx-funnel-row">
+                        <span class="text-muted">@step.Label</span>
+                        <div class="nx-meter"><span style="width:@pct.ToString("0.#")%;background:@(new[] { "#86b6ef", "#6da7ec", "#5598e7", "#3987e5", "#2a78d6", "#1c5cab" }[i])"></span></div>
+                        <span class="text-end fw-medium tabular">@step.Count</span>
+                    </div>
+                }
+                <div class="nx-callout nx-callout-neutral mt-3">
+                    <i class="bi bi-info-circle"></i>
+                    <span>Small sample (@Model.Funnel.First().Count applications). Conversion rates aren't shown below 30 applications because they would be misleading.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-xl-7">
+        <div class="nx-card mb-3">
+            <div class="nx-card-head">
+                <div>
+                    <h2>Needs your attention</h2>
+                    <div class="nx-sub">Processed applications without a decision, and failed resumes</div>
+                </div>
+                <a class="small" asp-controller="Candidates" asp-action="Index">All candidates</a>
+            </div>
+            @if (Model.NeedsAttention.Count == 0)
+            {
+                <div class="nx-empty"><i class="bi bi-check2-circle"></i><h3>You're all caught up</h3><p class="small mb-0">New applications will appear here once screened.</p></div>
+            }
+            else
+            {
+                <ul class="nx-list">
+                    @foreach (var a in Model.NeedsAttention)
+                    {
+                        <li>
+                            @Html.Score(a.Screening?.Score)
+                            <div class="flex-grow-1 min-w-0">
+                                <a class="fw-medium text-reset" asp-controller="Candidates" asp-action="Details" asp-route-id="@a.Id">@a.Candidate.FullName</a>
+                                <div class="small text-muted text-truncate">@a.Job.Title · applied @Ui.Ago(a.AppliedOn)</div>
+                            </div>
+                            <span class="nx-badge @Ui.ProcessingBadge(a.Processing)"><i class="bi @Ui.ProcessingIcon(a.Processing)"></i>@Ui.ProcessingLabel(a.Processing)</span>
+                            <a class="btn btn-sm btn-outline-secondary" asp-controller="Candidates" asp-action="Details" asp-route-id="@a.Id">Review</a>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+
+        <div class="nx-card">
+            <div class="nx-card-head">
+                <h2>Open job pipelines</h2>
+                <a class="small" asp-controller="Jobs" asp-action="Index">All jobs</a>
+            </div>
+            <div class="nx-table-wrap">
+                <table class="nx-table">
+                    <thead><tr><th>Job</th><th class="text-end">Applied</th><th class="text-end">Screened</th><th class="text-end">Shortlisted</th><th class="text-end">Interview</th><th>Closes</th></tr></thead>
+                    <tbody>
+                        @foreach (var (job, total, screened, shortlisted, interview) in Model.JobPipelines)
+                        {
+                            <tr>
+                                <td><a class="nx-row-link" asp-controller="Jobs" asp-action="Details" asp-route-id="@job.Id">@job.Title</a><div class="small text-muted">@job.Department · @job.Location</div></td>
+                                <td class="text-end tabular">@total</td>
+                                <td class="text-end tabular">@screened</td>
+                                <td class="text-end tabular">@shortlisted</td>
+                                <td class="text-end tabular">@interview</td>
+                                <td class="small @( (job.Deadline - DateTime.Today).TotalDays < 14 ? "text-danger" : "text-muted")">in @((job.Deadline - DateTime.Today).Days) days</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-5">
+        <div class="nx-card mb-3">
+            <div class="nx-card-head">
+                <h2>Upcoming interviews</h2>
+                <a class="small" asp-controller="Interviews" asp-action="Index">Calendar</a>
+            </div>
+            <ul class="nx-list">
+                @foreach (var i in Model.UpcomingInterviews)
+                {
+                    <li>
+                        <div class="text-center" style="min-width:46px">
+                            <div class="small text-muted text-uppercase" style="font-size:.68rem">@i.StartsAt.ToString("ddd")</div>
+                            <div class="fw-semibold fs-5 lh-1">@i.StartsAt.Day</div>
+                        </div>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="fw-medium">@i.Application.Candidate.FullName</div>
+                            <div class="small text-muted text-truncate">@i.StartsAt.ToString("h:mm tt") IST · R@(i.Round) @i.Title · @i.Application.Job.Title</div>
+                        </div>
+                        <span class="nx-badge nx-badge-outline"><i class="bi @(i.Type == "Video" ? "bi-camera-video" : i.Type == "Phone" ? "bi-telephone" : "bi-geo-alt")"></i>@i.Type</span>
+                    </li>
+                }
+            </ul>
+        </div>
+
+        <div class="nx-card mb-3">
+            <div class="nx-card-head">
+                <div>
+                    <h2>Resume processing</h2>
+                    <div class="nx-sub">Local AI service · all applications</div>
+                </div>
+                <span class="nx-badge nx-badge-success"><span class="nx-dot"></span> Healthy</span>
+            </div>
+            <div class="nx-card-body">
+                <div class="row g-2 text-center">
+                    @foreach (var s in new[] { ProcessingStatus.Queued, ProcessingStatus.Processing, ProcessingStatus.Completed, ProcessingStatus.NeedsReview, ProcessingStatus.Failed })
+                    {
+                        <div class="col">
+                            <div class="fs-5 fw-semibold tabular">@Model.Processing[s]</div>
+                            <div class="small text-muted" style="font-size:.72rem">@Ui.ProcessingLabel(s)</div>
+                        </div>
+                    }
+                </div>
+                <div class="nx-divider"></div>
+                <div class="d-flex justify-content-between small mb-1"><span class="text-muted">Resume credits this period</span><span class="fw-medium tabular">@Data.Subscription.Usage[1].Used / @Data.Subscription.Usage[1].Limit</span></div>
+                <div class="nx-meter ai"><span style="width:@Data.Subscription.Usage[1].Percent%"></span></div>
+            </div>
+        </div>
+
+        <div class="nx-card">
+            <div class="nx-card-head"><h2>Recent applications</h2></div>
+            <ul class="nx-list">
+                @foreach (var a in Model.RecentApplications)
+                {
+                    <li>
+                        @Html.Avatar(a.Candidate.Initials)
+                        <div class="flex-grow-1 min-w-0">
+                            <a class="fw-medium text-reset" asp-controller="Candidates" asp-action="Details" asp-route-id="@a.Id">@a.Candidate.FullName</a>
+                            <div class="small text-muted text-truncate">@a.Job.Title · @a.Source</div>
+                        </div>
+                        <span class="small text-muted">@Ui.Ago(a.AppliedOn)</span>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="~/js/charts.js" asp-append-version="true"></script>
+}

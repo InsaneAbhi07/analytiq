@@ -1,0 +1,56 @@
+@model List<Interview>
+@{ var interviewerView = ViewData["InterviewerView"] is true; }
+@foreach (var day in Model.GroupBy(i => i.StartsAt.Date))
+{
+    var label = day.Key == DateTime.Today ? "Today" : day.Key == DateTime.Today.AddDays(1) ? "Tomorrow" : day.Key.ToString("dddd, dd MMM yyyy");
+    <div class="nx-day-group">@label</div>
+    <ul class="nx-list">
+        @foreach (var i in day)
+        {
+            var a = i.Application;
+            <li class="flex-wrap">
+                <div class="nx-time">@i.StartsAt.ToString("h:mm tt")<div class="small text-muted fw-normal">@i.DurationMinutes min</div></div>
+                <div class="flex-grow-1 min-w-0" style="min-width:200px">
+                    <div class="fw-medium">
+                        @if (interviewerView) { @a.Candidate.FullName }
+                        else { <a class="text-reset" asp-controller="Candidates" asp-action="Details" asp-route-id="@a.Id">@a.Candidate.FullName</a> }
+                    </div>
+                    <div class="small text-muted text-truncate">Round @i.Round · @i.Title · @a.Job.Title</div>
+                </div>
+                <div class="small text-muted d-none d-md-block" style="min-width:180px">
+                    <i class="bi @(i.Type == "Video" ? "bi-camera-video" : i.Type == "Phone" ? "bi-telephone" : "bi-geo-alt") me-1"></i>@i.Location
+                </div>
+                <div class="nx-avatar-stack d-none d-sm-flex" title="@string.Join(", ", i.Interviewers)">
+                    @foreach (var name in i.Interviewers) { @Html.Avatar(string.Concat(name.Split(' ').Take(2).Select(p => p[0])), "nx-avatar-sm") }
+                </div>
+                <span class="nx-badge @Ui.InterviewBadge(i.Status)" style="min-width:84px;justify-content:center">@Ui.InterviewLabel(i.Status)</span>
+                <div class="dropdown">
+                    <button class="btn btn-ghost btn-sm btn-icon" data-bs-toggle="dropdown" aria-label="Interview actions"><i class="bi bi-three-dots"></i></button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        @if (i.Status == InterviewStatus.Scheduled)
+                        {
+                            @if (i.Type == "Video") { <li><a class="dropdown-item" href="#" data-toast="Opens the meeting link in a real build."><i class="bi bi-camera-video me-2"></i>Join meeting</a></li> }
+                            <li><a class="dropdown-item" asp-action="Feedback" asp-route-id="@i.Id"><i class="bi bi-clipboard-check me-2"></i>Record feedback</a></li>
+                            @if (!interviewerView)
+                            {
+                                <li><a class="dropdown-item" href="#" data-confirm="Mark the candidate as attended?" data-confirm-title="Record attendance" data-confirm-ok="Mark attended" data-toast="Attendance recorded (prototype)."><i class="bi bi-person-check me-2"></i>Mark attended</a></li>
+                                <li><a class="dropdown-item" href="#" data-confirm="Record that the candidate did not attend." data-confirm-title="Mark as no-show?" data-confirm-ok="Mark no-show" data-confirm-variant="warning" data-toast="Marked as no-show (prototype)."><i class="bi bi-person-x me-2"></i>Mark no-show</a></li>
+                                <li><a class="dropdown-item" asp-action="Schedule" asp-route-applicationId="@a.Id"><i class="bi bi-calendar-event me-2"></i>Reschedule</a></li>
+                                <li><hr class="dropdown-divider" /></li>
+                                <li><a class="dropdown-item text-danger" href="#" data-confirm="The candidate and interviewers are notified when email is configured." data-confirm-title="Cancel interview?" data-confirm-ok="Cancel interview" data-confirm-variant="danger" data-confirm-reason data-toast="Interview cancelled (prototype)."><i class="bi bi-x-circle me-2"></i>Cancel</a></li>
+                            }
+                        }
+                        else
+                        {
+                            <li><a class="dropdown-item" asp-action="Feedback" asp-route-id="@i.Id"><i class="bi bi-clipboard-data me-2"></i>@(i.Feedback is null ? "Record feedback" : "View feedback")</a></li>
+                        }
+                    </ul>
+                </div>
+            </li>
+        }
+    </ul>
+}
+@if (Model.Count == 0)
+{
+    <div class="nx-empty"><i class="bi bi-calendar2"></i><h3>Nothing here</h3><p class="small mb-0">Interviews you schedule appear here.</p></div>
+}

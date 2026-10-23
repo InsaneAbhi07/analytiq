@@ -1,0 +1,38 @@
+@model List<Plan>
+@{ ViewData["Title"] = "Subscription plans"; }
+
+<div class="nx-page-head">
+    <div><h1>Subscription plans</h1><p>Prices and limits are stored in the database. Changes apply to new subscriptions and to renewals after notice.</p></div>
+    <button class="btn btn-primary" data-toast="New-plan form would open (prototype)." data-toast-variant="info"><i class="bi bi-plus-lg"></i> New plan</button>
+</div>
+
+<form asp-action="Save" method="post">
+    <input type="hidden" name="returnTo" value="Plans" />
+    <div class="nx-card">
+        <div class="nx-table-wrap">
+            <table class="nx-table">
+                <thead><tr><th>Plan</th><th>Monthly (₹)</th><th>Annual (₹)</th><th>Active jobs</th><th>Resume credits</th><th>Seats</th><th>Storage</th><th>Advanced AI</th><th class="text-end">Subscribers</th></tr></thead>
+                <tbody>
+                    @foreach (var p in Model)
+                    {
+                        <tr>
+                            <td class="fw-medium">@p.Name</td>
+                            <td><input class="form-control form-control-sm" style="width:110px" type="number" value="@p.MonthlyPrice" placeholder="Custom" aria-label="@p.Name monthly price" /></td>
+                            <td><input class="form-control form-control-sm" style="width:120px" type="number" value="@p.AnnualPrice" placeholder="Custom" aria-label="@p.Name annual price" /></td>
+                            <td><input class="form-control form-control-sm" style="width:90px" value="@p.ActiveJobs" aria-label="@p.Name active jobs" /></td>
+                            <td><input class="form-control form-control-sm" style="width:130px" value="@p.ResumeCredits" aria-label="@p.Name resume credits" /></td>
+                            <td><input class="form-control form-control-sm" style="width:80px" value="@p.Seats" aria-label="@p.Name seats" /></td>
+                            <td><input class="form-control form-control-sm" style="width:90px" value="@p.Storage" aria-label="@p.Name storage" /></td>
+                            <td><div class="form-check form-switch"><input class="form-check-input" type="checkbox" checked="@p.AdvancedAi" aria-label="@p.Name advanced AI" /></div></td>
+                            <td class="text-end tabular">@p.Subscribers</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="nx-card-foot d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span class="small text-muted"><i class="bi bi-info-circle me-1"></i>Values shown are prototype samples, not commercial prices.</span>
+            <button class="btn btn-primary" type="submit" data-confirm="Price changes notify affected companies 30 days before they apply to renewals." data-confirm-title="Save plan changes?" data-confirm-ok="Save changes" data-confirm-reason>Save changes</button>
+        </div>
+    </div>
+</form>

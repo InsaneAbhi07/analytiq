@@ -1,0 +1,55 @@
+@{ ViewData["Title"] = "System settings"; }
+
+<div class="nx-page-head">
+    <div><h1>System settings</h1><p>Platform-wide defaults. Secrets such as connection strings and API keys come from environment variables and are never shown here.</p></div>
+</div>
+
+<form asp-action="Save" method="post">
+    <input type="hidden" name="returnTo" value="System" />
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="nx-card h-100">
+                <div class="nx-card-head"><h2>Security</h2></div>
+                <div class="nx-card-body row g-3">
+                    <div class="col-md-6"><label class="form-label" for="lock">Lockout after failed logins</label><input class="form-control" id="lock" type="number" value="5" /></div>
+                    <div class="col-md-6"><label class="form-label" for="lockMin">Lockout duration (min)</label><input class="form-control" id="lockMin" type="number" value="15" /></div>
+                    <div class="col-md-6"><label class="form-label" for="sess">Session timeout (min)</label><input class="form-control" id="sess" type="number" value="60" /></div>
+                    <div class="col-md-6"><label class="form-label" for="pwlen">Minimum password length</label><input class="form-control" id="pwlen" type="number" value="10" /></div>
+                    <div class="col-12"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="mfa" checked /><label class="form-check-label small" for="mfa">Require MFA for Platform Admins</label></div></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="nx-card h-100">
+                <div class="nx-card-head"><h2>Uploads &amp; processing</h2></div>
+                <div class="nx-card-body row g-3">
+                    <div class="col-md-6"><label class="form-label" for="maxmb">Max resume size (MB)</label><input class="form-control" id="maxmb" type="number" value="5" /></div>
+                    <div class="col-md-6"><label class="form-label" for="types">Allowed types</label><input class="form-control" id="types" value="PDF, DOCX" readonly /></div>
+                    <div class="col-md-6"><label class="form-label" for="timeout">AI request timeout (s)</label><input class="form-control" id="timeout" type="number" value="30" /></div>
+                    <div class="col-md-6"><label class="form-label" for="retries">Max retries</label><input class="form-control" id="retries" type="number" value="3" /></div>
+                    <div class="col-12"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="ext" /><label class="form-check-label small" for="ext">Allow tenants to enable an external AI provider <span class="text-muted">(off by default)</span></label></div></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="nx-card h-100">
+                <div class="nx-card-head"><h2>Billing</h2></div>
+                <div class="nx-card-body row g-3">
+                    <div class="col-md-6"><label class="form-label" for="grace">Grace period (days)</label><input class="form-control" id="grace" type="number" value="7" /></div>
+                    <div class="col-md-6"><label class="form-label" for="trial">Trial length (days)</label><input class="form-control" id="trial" type="number" value="14" /></div>
+                    <div class="col-12"><label class="form-label" for="gw">Payment provider</label><select class="form-select" id="gw"><option>Demo mode (no gateway)</option><option disabled>Razorpay (credentials required)</option><option disabled>Cashfree (credentials required)</option></select></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="nx-card h-100">
+                <div class="nx-card-head"><h2>Data retention defaults</h2></div>
+                <div class="nx-card-body row g-3">
+                    <div class="col-md-6"><label class="form-label" for="ret">Default candidate retention</label><select class="form-select" id="ret"><option>6 months</option><option selected>12 months</option><option>24 months</option></select></div>
+                    <div class="col-md-6"><label class="form-label" for="aud">Audit log retention</label><select class="form-select" id="aud"><option>1 year</option><option selected>3 years</option><option>7 years</option></select></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="text-end mt-3"><button class="btn btn-primary" type="submit">Save system settings</button></div>
+</form>

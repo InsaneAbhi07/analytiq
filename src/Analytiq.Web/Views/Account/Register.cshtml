@@ -1,0 +1,49 @@
+@{ ViewData["Title"] = "Register your company"; }
+<h1 class="h3 mb-1">Register your company</h1>
+<p class="text-muted mb-4">Start a 14-day free trial. You'll be the Company Admin.</p>
+
+<form asp-action="Register" method="post" class="needs-validation" novalidate>
+    <div class="row g-3">
+        <div class="col-12">
+            <label class="form-label required" for="companyName">Company name</label>
+            <input class="form-control" id="companyName" name="companyName" required maxlength="120" autocomplete="organization" />
+            <div class="invalid-feedback">Enter your company name.</div>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label required" for="adminName">Your name</label>
+            <input class="form-control" id="adminName" name="adminName" required autocomplete="name" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label required" for="phone">Phone</label>
+            <input class="form-control" id="phone" name="phone" type="tel" required autocomplete="tel" />
+        </div>
+        <div class="col-12">
+            <label class="form-label required" for="email">Business email</label>
+            <input class="form-control" id="email" name="email" type="email" required autocomplete="email" />
+            <div class="form-text">We'll send a verification link. Free email domains need manual approval.</div>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label required" for="size">Company size</label>
+            <select class="form-select" id="size" name="size" required><option value="">Select…</option><option>1–50</option><option>51–200</option><option>201–1,000</option><option>1,000+</option></select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="industry">Industry</label>
+            <input class="form-control" id="industry" name="industry" />
+        </div>
+        <div class="col-12">
+            <label class="form-label required" for="password">Password</label>
+            <input class="form-control" id="password" name="password" type="password" required minlength="10" autocomplete="new-password" />
+            <div class="form-text">At least 10 characters, using letters, numbers and a symbol.</div>
+            <div class="invalid-feedback">Use at least 10 characters.</div>
+        </div>
+        <div class="col-12">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="terms" required />
+                <label class="form-check-label small" for="terms">I agree to the Terms of Service and Data Processing Agreement.</label>
+                <div class="invalid-feedback">You need to accept the terms to continue.</div>
+            </div>
+        </div>
+    </div>
+    <button class="btn btn-primary w-100 btn-lg mt-4" type="submit">Create workspace</button>
+</form>
+<p class="small text-muted text-center mt-4 mb-0">Already have an account? <a asp-action="Login">Sign in</a></p>

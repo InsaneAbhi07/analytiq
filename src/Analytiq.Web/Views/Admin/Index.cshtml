@@ -1,0 +1,103 @@
+@model MockDataStore
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Platform overview";
+    var cos = Model.PlatformCompanies;
+    var active = cos.Count(c => c.Status is "Active" or "Trial");
+    var byPlan = Model.Plans.Select(p => cos.Count(c => c.Plan == p.Name && c.Status is "Active" or "Trial")).ToList();
+    var planChart = JsonSerializer.Serialize(new { type = "bar", data = new { labels = Model.Plans.Select(p => p.Name), datasets = new[] { new { label = "Companies", data = byPlan } } } });
+    var credits = cos.Sum(c => c.CreditsUsed);
+}
+
+<div class="nx-page-head">
+    <div><h1>Platform overview</h1><p>Aggregate, tenant-level metrics across Analytiq. Candidate data isn't visible from this console.</p></div>
+</div>
+
+<div class="row g-3 mb-3">
+    @foreach (var (label, value, foot, icon) in new[]
+    {
+        ("Companies", cos.Count.ToString(), $"{active} active or trial", "bi-buildings"),
+        ("Users", cos.Sum(c => c.Users).ToString(), "Across all tenants", "bi-people"),
+        ("Active jobs", cos.Sum(c => c.ActiveJobs).ToString(), "Published postings", "bi-briefcase"),
+        ("Resumes processed", credits.ToString("N0"), "This billing period", "bi-cpu"),
+        ("Suspended", cos.Count(c => c.Status == "Suspended").ToString(), "Payment overdue past grace period", "bi-pause-circle"),
+    })
+    {
+        <div class="col-6 col-md">
+            <div class="nx-card nx-kpi">
+                <div class="d-flex justify-content-between"><div class="nx-kpi-label">@label</div><span class="nx-kpi-icon"><i class="bi @icon"></i></span></div>
+                <div class="nx-kpi-value">@value</div>
+                <div class="nx-kpi-foot">@foot</div>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-5">
+        <div class="nx-card h-100">
+            <div class="nx-card-head"><div><h2>Companies by plan</h2><div class="nx-sub">Active and trial</div></div></div>
+            <div class="nx-card-body"><div class="nx-chart sm"><canvas data-chart="@planChart" role="img" aria-label="Companies by plan"></canvas></div></div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="nx-card h-100">
+            <div class="nx-card-head"><h2>Resume credit usage by tenant</h2><a class="small" asp-action="Companies">All companies</a></div>
+            <div class="nx-card-body">
+                @foreach (var c in cos.Where(c => c.Status != "Deactivated").OrderByDescending(c => (double)c.CreditsUsed / c.CreditsLimit))
+                {
+                    var pct = (int)Math.Round(c.CreditsUsed * 100.0 / c.CreditsLimit);
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between small mb-1"><span>@c.Name <span class="text-muted">· @c.Plan</span></span><span class="tabular">@c.CreditsUsed.ToString("N0") / @c.CreditsLimit.ToString("N0")</span></div>
+                        <div class="nx-meter @(pct >= 100 ? "over" : pct >= 80 ? "warn" : "")"><span style="width:@Math.Min(100, pct)%"></span></div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="nx-card">
+            <div class="nx-card-head"><h2>Recent security &amp; audit events</h2><a class="small" asp-action="Audit">View all</a></div>
+            <ul class="nx-list">
+                @foreach (var e in Model.AuditLog.Take(5))
+                {
+                    <li>
+                        <span class="nx-badge @Ui.SeverityBadge(e.Severity)" style="min-width:64px;justify-content:center">@e.Severity</span>
+                        <div class="flex-grow-1 min-w-0"><div class="small fw-medium">@e.Action</div><div class="small text-muted text-truncate">@e.Company · @e.Actor</div></div>
+                        <span class="small text-muted">@Ui.Ago(e.On)</span>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="nx-card">
+            <div class="nx-card-head"><h2>Service health</h2></div>
+            <ul class="nx-list">
+                @foreach (var (name, status, detail) in new[]
+                {
+                    ("Web application", "Operational", "p95 latency 180 ms"),
+                    ("AI service (FastAPI)", "Operational", "2 workers · model loaded"),
+                    ("Processing queue", "Operational", $"{Model.ProcessingJobs.Count(j => j.Status is ProcessingStatus.Queued or ProcessingStatus.Processing)} in queue"),
+                    ("SQL Server", "Operational", "Last backup 03:00 IST"),
+                    ("Email (SMTP)", "Not configured", "Notifications queued only"),
+                })
+                {
+                    <li>
+                        <span class="nx-dot @(status == "Operational" ? "" : "warn")"></span>
+                        <div class="flex-grow-1"><div class="small fw-medium">@name</div><div class="small text-muted">@detail</div></div>
+                        <span class="small">@status</span>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="~/js/charts.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,59 @@
+@model Application?
+@inject MockDataStore Data
+@{
+    ViewData["Title"] = "Track your application";
+    bool searched = ViewBag.Searched;
+    var steps = new[] { "Submitted", "Under review", "Interview", "Decision" };
+    int current = Model?.Stage switch
+    {
+        ApplicationStage.Interview => 2,
+        ApplicationStage.Offer or ApplicationStage.Hired or ApplicationStage.Rejected or ApplicationStage.Withdrawn => 3,
+        _ => 1
+    };
+}
+<div class="container py-5" style="max-width:680px">
+    <h1 class="h3 mb-1">Track your application</h1>
+    <p class="text-muted">Enter the tracking code from your confirmation email. Try <code>ZF-7K2Q9</code> or <code>ZF-5Q3E1</code>.</p>
+
+    <form method="get" class="nx-card nx-card-body d-flex gap-2 mb-4">
+        <label class="visually-hidden" for="code">Tracking code</label>
+        <input class="form-control" id="code" name="code" value="@ViewBag.Code" placeholder="e.g. ZF-7K2Q9" required maxlength="20" />
+        <button class="btn btn-primary" type="submit">Check status</button>
+    </form>
+
+    @if (searched && Model is null)
+    {
+        <div class="nx-callout nx-callout-warning"><i class="bi bi-exclamation-triangle"></i><span>We couldn't find an application with that code. Check the code in your confirmation email.</span></div>
+    }
+    else if (Model is not null)
+    {
+        <div class="nx-card mb-3">
+            <div class="nx-card-head">
+                <div><h2>@Model.Job.Title</h2><div class="nx-sub">@Data.Company.Name · applied @Model.AppliedOn.ToString("dd MMM yyyy")</div></div>
+                <span class="nx-badge nx-badge-primary">@Ui.CandidateStatus(Model.Stage)</span>
+            </div>
+            <div class="nx-card-body">
+                <ol class="nx-stepper mb-4">
+                    @for (var i = 0; i < steps.Length; i++)
+                    {
+                        <li class="@(i < current ? "done" : i == current ? "current" : "")">@steps[i]</li>
+                    }
+                </ol>
+                @if (Model.Stage == ApplicationStage.InfoRequested)
+                {
+                    <div class="nx-callout nx-callout-info mb-3"><i class="bi bi-info-circle"></i><div><strong>The hiring team asked for more information.</strong> @Model.StageReason. <button class="btn btn-link btn-sm p-0 align-baseline" data-toast="Secure upload form would open (prototype)." data-toast-variant="info">Add information</button></div></div>
+                }
+                <p class="small text-muted mb-0">We'll email you when your status changes. We don't share internal notes or screening scores. A person reviews every application.</p>
+            </div>
+        </div>
+        <div class="nx-card nx-card-body">
+            <div class="small fw-semibold mb-2">Your data</div>
+            <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-sm btn-outline-secondary" data-toast="Secure document update form would open (prototype)." data-toast-variant="info"><i class="bi bi-upload"></i> Update resume</button>
+                <button class="btn btn-sm btn-outline-secondary" data-toast="Correction request sent to the hiring team (prototype)." data-toast-variant="info"><i class="bi bi-pencil"></i> Request correction</button>
+                <button class="btn btn-sm btn-outline-secondary" data-confirm="Withdrawing ends your application for this role. You can still apply to other roles." data-confirm-title="Withdraw application?" data-confirm-ok="Withdraw" data-confirm-variant="danger" data-toast="Application withdrawn (prototype)."><i class="bi bi-box-arrow-left"></i> Withdraw</button>
+                <button class="btn btn-sm btn-outline-secondary text-danger" data-confirm="We'll verify your identity by email, then delete your resume and personal data from this company's records." data-confirm-title="Request data deletion?" data-confirm-ok="Send request" data-confirm-variant="danger" data-toast="Deletion request received. Check your email to confirm (prototype)."><i class="bi bi-trash"></i> Delete my data</button>
+            </div>
+        </div>
+    }
+</div>

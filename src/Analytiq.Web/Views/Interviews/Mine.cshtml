@@ -1,0 +1,44 @@
+@model List<Interview>
+@{
+    ViewData["Title"] = "My interviews";
+    ViewData["InterviewerView"] = true;
+    var name = (string)ViewBag.Interviewer;
+    var upcoming = Model.Where(i => i.Status == InterviewStatus.Scheduled).ToList();
+    var done = Model.Where(i => i.Status != InterviewStatus.Scheduled).OrderByDescending(i => i.StartsAt).ToList();
+}
+
+<div class="nx-callout nx-callout-info mb-3">
+    <i class="bi bi-eye"></i>
+    <span><strong>Prototype: Interviewer view as @name.</strong> Interviewers see only the interviews assigned to them and the candidate details needed for the interview. They don't see scores, salary, other candidates or recruiter notes.</span>
+</div>
+
+<div class="nx-page-head">
+    <div>
+        <h1>My interviews</h1>
+        <p>@upcoming.Count upcoming · @done.Count(i => i.Feedback is not null) feedback submitted</p>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="nx-card">
+            <div class="nx-card-head"><h2>Schedule</h2></div>
+            <partial name="_InterviewList" model="upcoming" />
+        </div>
+        <div class="nx-card mt-3">
+            <div class="nx-card-head"><h2>Completed</h2></div>
+            <partial name="_InterviewList" model="done" />
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="nx-card nx-card-body">
+            <h2 class="h6">Giving good feedback</h2>
+            <ul class="small text-muted ps-3 mb-0">
+                <li>Rate each criterion against the job, not against other candidates.</li>
+                <li>Write down what you observed, such as answers and code, rather than impressions.</li>
+                <li>Don't comment on age, appearance, accent, family or other personal attributes.</li>
+                <li>Submit within 24 hours. Feedback is locked once submitted.</li>
+            </ul>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,195 @@
+@model List<Application>
+@inject MockDataStore Data
+@{
+    ViewData["Title"] = "Candidates";
+    int? jobId = ViewBag.JobId;
+    var skills = Model.SelectMany(a => a.Candidate.Skills).GroupBy(s => s).OrderByDescending(g => g.Count()).Take(20).Select(g => g.Key).OrderBy(s => s).ToList();
+}
+
+<div class="nx-page-head">
+    <div>
+        <h1>Candidates</h1>
+        <p>@Model.Count applications · @Model.Count(MockDataStore.AwaitsReview) awaiting review. Scores help you sort, but every decision is yours.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary" type="button" data-toast="Export queued. You'll get a CSV of the rows you're allowed to see (prototype)." data-toast-variant="info"><i class="bi bi-download"></i> Export</button>
+        <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#uploadModal"><i class="bi bi-upload"></i> Upload resumes</button>
+    </div>
+</div>
+
+<div class="nx-card" data-filter-table data-bulk>
+    <div class="nx-filters">
+        <div class="input-icon">
+            <i class="bi bi-search"></i>
+            <input class="form-control" data-filter="search" placeholder="Search name, email or skill" aria-label="Search candidates" />
+        </div>
+        <select class="form-select" data-filter-key="job" aria-label="Job">
+            <option value="">All jobs</option>
+            @foreach (var j in Data.Jobs.Where(j => Model.Any(a => a.JobId == j.Id))) { <option value="@j.Id" selected="@(jobId == j.Id)">@j.Title</option> }
+        </select>
+        <select class="form-select" data-filter-key="stage" aria-label="Stage">
+            <option value="">All stages</option>
+            @foreach (var s in Enum.GetValues<ApplicationStage>()) { <option value="@s">@Ui.StageLabel(s)</option> }
+        </select>
+        <select class="form-select" data-filter-key="processing" aria-label="AI processing status">
+            <option value="">Any processing status</option>
+            @foreach (var s in Enum.GetValues<ProcessingStatus>()) { <option value="@s">@Ui.ProcessingLabel(s)</option> }
+        </select>
+        <select class="form-select" data-filter-key="skills" aria-label="Skill">
+            <option value="">Any skill</option>
+            @foreach (var s in skills) { <option>@s</option> }
+        </select>
+        <select class="form-select" data-filter-min="score" aria-label="Minimum match score">
+            <option value="">Any score</option>
+            <option value="75">75 and above</option>
+            <option value="50">50 and above</option>
+        </select>
+        <select class="form-select" data-filter-min="exp" aria-label="Minimum experience">
+            <option value="">Any experience</option>
+            <option value="3">3+ years</option>
+            <option value="5">5+ years</option>
+        </select>
+        <select class="form-select" data-filter-key="recruiter" aria-label="Assigned recruiter">
+            <option value="">Any recruiter</option>
+            @foreach (var r in Model.Select(a => a.AssignedRecruiter).Distinct()) { <option>@r</option> }
+        </select>
+        <button class="btn btn-ghost btn-sm" type="button" data-filter-reset>Reset</button>
+    </div>
+
+    <div class="nx-bulk-bar" data-bulk-bar>
+        <strong><span data-bulk-count>0</span> selected</strong>
+        <button class="btn btn-sm btn-outline-secondary" type="button" data-requires-selection data-min="2" data-max="4" data-compare-url="@Url.Action("Compare")"><i class="bi bi-layout-three-columns"></i> Compare</button>
+        <button class="btn btn-sm btn-outline-secondary" type="button" data-bulk-stage="Shortlisted" data-badge="nx-badge-primary" data-confirm="Selected candidates move to Shortlisted. Each change is logged with your name." data-confirm-title="Shortlist selected candidates?" data-confirm-ok="Shortlist" data-toast="Selected candidates shortlisted (prototype)."><i class="bi bi-star"></i> Shortlist</button>
+        <button class="btn btn-sm btn-outline-secondary" type="button" data-bulk-stage="On hold" data-badge="nx-badge-warning" data-confirm="Selected candidates move to On hold." data-confirm-title="Put on hold?" data-confirm-ok="Put on hold" data-toast="Selected candidates put on hold (prototype)."><i class="bi bi-pause-circle"></i> Hold</button>
+        <button class="btn btn-sm btn-outline-secondary text-danger" type="button" data-bulk-stage="Rejected" data-badge="nx-badge-danger" data-confirm="Rejection is a human decision. Record why. A low AI score on its own is not a sufficient reason." data-confirm-title="Reject selected candidates?" data-confirm-ok="Reject" data-confirm-variant="danger" data-confirm-reason data-toast="Selected candidates rejected with reason recorded (prototype)."><i class="bi bi-x-circle"></i> Reject</button>
+        <span class="ms-auto small">Bulk actions never run automatically from scores.</span>
+    </div>
+
+    <div class="nx-table-wrap">
+        <table class="nx-table">
+            <thead>
+                <tr>
+                    <th style="width:36px"><input class="form-check-input" type="checkbox" data-check-all aria-label="Select all" /></th>
+                    <th data-sort="name">Candidate</th>
+                    <th data-sort="jobtitle">Applied for</th>
+                    <th data-sort="score" aria-sort="descending">Match</th>
+                    <th>Matching skills</th>
+                    <th data-sort="processing">Processing</th>
+                    <th data-sort="stagename">Stage</th>
+                    <th>Interview</th>
+                    <th data-sort="recruiter">Recruiter</th>
+                    <th data-sort="applied">Applied</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var a in Model)
+                {
+                    var s = a.Screening;
+                    var matched = s?.RequiredMatched.Concat(s.PreferredMatched).ToList() ?? [];
+                    var interview = Data.InterviewsFor(a.Id).LastOrDefault();
+                    <tr data-row data-search="@a.Candidate.FullName @a.Candidate.Email @a.Job.Title @string.Join(" ", a.Candidate.Skills)"
+                        data-job="@a.JobId" data-stage="@a.Stage" data-processing="@a.Processing" data-skills="@string.Join("|", a.Candidate.Skills)"
+                        data-recruiter="@a.AssignedRecruiter" data-score="@(s?.Score.ToString() ?? "-1")" data-exp="@(a.Candidate.ExperienceYears?.ToString() ?? "")"
+                        data-name="@a.Candidate.FullName" data-jobtitle="@a.Job.Title" data-stagename="@Ui.StageLabel(a.Stage)" data-applied="@a.AppliedOn.ToString("yyyyMMddHHmm")">
+                        <td><input class="form-check-input" type="checkbox" data-check-row value="@a.Id" aria-label="Select @a.Candidate.FullName" /></td>
+                        <td>
+                            <div class="nx-person">
+                                @Html.Avatar(a.Candidate.Initials)
+                                <div class="min-w-0">
+                                    <a class="nx-row-link nx-person-name" asp-action="Details" asp-route-id="@a.Id">@a.Candidate.FullName</a>
+                                    <span class="nx-person-sub">@(a.Candidate.ExperienceYears is { } y ? $"{y:0.#} yrs" : "Experience unverified") · @a.Candidate.Location</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="small">@a.Job.Title</td>
+                        <td>@Html.Score(s?.Score)</td>
+                        <td style="max-width:260px">
+                            @if (s is null)
+                            {
+                                <span class="small text-muted">—</span>
+                            }
+                            else
+                            {
+                                <div class="nx-chips">
+                                    @foreach (var m in matched.Take(3))
+                                    {
+                                        <span class="nx-chip @(m.Type == SkillMatchType.Exact ? "nx-chip-match" : "nx-chip-semantic")" title="@(m.Type == SkillMatchType.Semantic ? $"Related: {m.MatchedTerm}" : "Exact match")">@m.Skill</span>
+                                    }
+                                    @if (matched.Count > 3) { <span class="nx-chip">+@(matched.Count - 3)</span> }
+                                    @if (s.RequiredMissing.Count > 0) { <span class="nx-chip nx-chip-missing" title="No resume evidence found for: @string.Join(", ", s.RequiredMissing)">@s.RequiredMissing.Count not evidenced</span> }
+                                </div>
+                            }
+                        </td>
+                        <td><span class="nx-badge @Ui.ProcessingBadge(a.Processing)"><i class="bi @Ui.ProcessingIcon(a.Processing)"></i>@Ui.ProcessingLabel(a.Processing)</span></td>
+                        <td><span class="nx-badge @Ui.StageBadge(a.Stage)" data-stage-badge>@Ui.StageLabel(a.Stage)</span></td>
+                        <td class="small">
+                            @if (interview is null) { <span class="text-muted">—</span> }
+                            else { <span class="nx-badge @Ui.InterviewBadge(interview.Status)">R@(interview.Round) @Ui.InterviewLabel(interview.Status)</span> }
+                        </td>
+                        <td class="small">@a.AssignedRecruiter</td>
+                        <td class="small text-muted" title="@a.AppliedOn.ToString("dd MMM yyyy HH:mm")">@Ui.Ago(a.AppliedOn)</td>
+                    </tr>
+                }
+                <tr class="nx-table-empty" hidden><td colspan="10"><i class="bi bi-search d-block fs-4 mb-1"></i>No candidates match these filters. <button class="btn btn-link btn-sm p-0" data-filter-reset>Clear filters</button></td></tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="nx-pager">
+        <span>Showing <span data-filter-count>@Model.Count</span> of @Model.Count</span>
+        <nav aria-label="Pagination" class="d-flex gap-1">
+            <button class="btn btn-sm btn-outline-secondary" disabled><i class="bi bi-chevron-left"></i></button>
+            <button class="btn btn-sm btn-primary">1</button>
+            <button class="btn btn-sm btn-outline-secondary" disabled><i class="bi bi-chevron-right"></i></button>
+        </nav>
+    </div>
+</div>
+
+<div class="nx-legend mt-3">
+    <span><span class="nx-chip nx-chip-match">Skill</span> exact match in resume</span>
+    <span><span class="nx-chip nx-chip-semantic">Skill</span> related skill (semantic), verify</span>
+    <span><span class="nx-chip nx-chip-missing">n not evidenced</span> required skills with no resume evidence. This is missing evidence, not a confirmed gap.</span>
+</div>
+
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" id="uploadForm">
+            <div class="modal-header">
+                <h2 class="modal-title" id="uploadTitle">Upload resumes</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label required" for="uploadJob">Job</label>
+                <select id="uploadJob" class="form-select mb-3" required>
+                    @foreach (var j in Data.Jobs.Where(j => j.Status == JobStatus.Published)) { <option>@j.Title</option> }
+                </select>
+                <div class="nx-upload" data-upload data-accept=".pdf,.docx" data-max-mb="5" tabindex="0" role="button" aria-label="Choose resume file">
+                    <input type="file" accept=".pdf,.docx" hidden />
+                    <i class="bi bi-cloud-arrow-up"></i>
+                    <div data-upload-label class="mt-1"><strong>Drop a PDF or DOCX here</strong> or click to browse<br /><span class="small text-muted">Up to 5 MB. Stored privately and processed in the background.</span></div>
+                </div>
+                <div class="text-danger small mt-2" data-upload-error hidden></div>
+                <div class="form-check mt-3">
+                    <input class="form-check-input" type="checkbox" id="uploadConsent" required />
+                    <label class="form-check-label small" for="uploadConsent">I confirm the candidate has been informed and consents to their data being processed for this application.</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-upload"></i> Upload</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Runs after the shared upload validation in site.js; respects its preventDefault.
+        document.getElementById("uploadForm").addEventListener("submit", (e) => {
+            if (e.defaultPrevented) return;
+            e.preventDefault();
+            if (!document.getElementById("uploadConsent").checked) { nx.toast("Confirm candidate consent before uploading.", "warning"); return; }
+            bootstrap.Modal.getInstance(document.getElementById("uploadModal")).hide();
+            nx.toast("Resume uploaded and queued for processing (prototype — not stored).");
+        });
+    </script>
+}

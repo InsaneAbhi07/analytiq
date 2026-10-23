@@ -1,0 +1,32 @@
+@{ ViewData["Title"] = "Sign in"; }
+<h1 class="h3 mb-1">Sign in</h1>
+<p class="text-muted mb-4">Welcome back to Analytiq.</p>
+
+<form asp-action="Login" method="post" class="needs-validation" novalidate>
+    <div class="mb-3">
+        <label class="form-label" for="email">Work email</label>
+        <input class="form-control" id="email" name="email" type="email" required autocomplete="username" value="priya.sharma@zenithfintech.example" />
+        <div class="invalid-feedback">Enter your work email.</div>
+    </div>
+    <div class="mb-2">
+        <div class="d-flex justify-content-between"><label class="form-label" for="password">Password</label><a class="small" asp-action="ForgotPassword">Forgot password?</a></div>
+        <input class="form-control" id="password" name="password" type="password" autocomplete="current-password" placeholder="Not checked in the prototype" />
+    </div>
+    <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" id="remember" />
+        <label class="form-check-label small" for="remember">Keep me signed in on this device</label>
+    </div>
+
+    <div class="nx-card nx-card-body mb-3" style="background:var(--nx-surface-2)">
+        <label class="form-label" for="role">Prototype: sign in as</label>
+        <select class="form-select" id="role" name="role">
+            <option value="company">Company Admin (Priya Sharma)</option>
+            <option value="interviewer">Interviewer (Ananya Iyer)</option>
+            <option value="admin">Platform Super Admin</option>
+        </select>
+        <div class="form-text">Real accounts use ASP.NET Core Identity with lockout after repeated failed attempts.</div>
+    </div>
+
+    <button class="btn btn-primary w-100 btn-lg" type="submit">Sign in</button>
+</form>
+<p class="small text-muted text-center mt-4 mb-0">New to Analytiq? <a asp-action="Register">Register your company</a></p>

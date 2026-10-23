@@ -1,0 +1,154 @@
+@model JobFormModel
+@inject MockDataStore Data
+@{
+    var isEdit = Model.Id.HasValue;
+    ViewData["Title"] = isEdit ? $"Edit {Model.Title}" : "Create job";
+    string[] suggestions = ["C#", "ASP.NET Core", "SQL Server", "Python", "React", "Azure", "Docker", "Kubernetes", "Figma", "Selenium"];
+}
+
+<div class="nx-breadcrumb"><a asp-action="Index">Jobs</a> / @(isEdit ? Model.Title : "New job")</div>
+<div class="nx-page-head">
+    <div>
+        <h1>@(isEdit ? "Edit job" : "Create a job")</h1>
+        <p>Required skills drive screening. Keep them specific, verifiable and relevant to the job.</p>
+    </div>
+</div>
+
+<form asp-action="Save" method="post" class="needs-validation" novalidate>
+    <input type="hidden" asp-for="Id" />
+    <div class="row g-3">
+        <div class="col-xl-8">
+            <div class="nx-card mb-3">
+                <div class="nx-card-head"><h2>Basics</h2></div>
+                <div class="nx-card-body">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label required" asp-for="Title">Job title</label>
+                            <input class="form-control" asp-for="Title" required maxlength="120" placeholder="e.g. Senior .NET Developer" />
+                            <div class="invalid-feedback">Enter a job title.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label required" asp-for="Department">Department</label>
+                            <select class="form-select" asp-for="Department" required>
+                                <option value="">Select…</option>
+                                @foreach (var d in Data.Departments) { <option selected="@(d.Name == Model.Department)">@d.Name</option> }
+                            </select>
+                            <div class="invalid-feedback">Choose a department.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label required" asp-for="Location">Location</label>
+                            <input class="form-control" asp-for="Location" required placeholder="e.g. Bengaluru" />
+                            <div class="invalid-feedback">Enter a location.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" asp-for="WorkMode">Work mode</label>
+                            <select class="form-select" asp-for="WorkMode">
+                                <option>On-site</option><option>Hybrid</option><option>Remote</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" asp-for="EmploymentType">Employment type</label>
+                            <select class="form-select" asp-for="EmploymentType">
+                                <option>Full-time</option><option>Part-time</option><option>Contract</option><option>Internship</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label required" asp-for="Openings">Openings</label>
+                            <input class="form-control" asp-for="Openings" type="number" min="1" max="500" required />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label" asp-for="MinExperience">Min experience (yrs)</label>
+                            <input class="form-control" asp-for="MinExperience" type="number" min="0" max="40" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label" asp-for="MaxExperience">Max experience (yrs)</label>
+                            <input class="form-control" asp-for="MaxExperience" type="number" min="0" max="40" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label required" asp-for="Deadline">Application deadline</label>
+                            <input class="form-control" asp-for="Deadline" type="date" required />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="nx-card mb-3">
+                <div class="nx-card-head">
+                    <div><h2>Screening criteria</h2><div class="nx-sub">Type a skill and press Enter</div></div>
+                </div>
+                <div class="nx-card-body">
+                    <label class="form-label required" for="RequiredSkillsInput">Required skills <span class="text-muted fw-normal">· @MockDataStore.RequiredWeight% of match score</span></label>
+                    <div data-tags class="form-control d-flex flex-wrap gap-2 align-items-center" style="min-height:44px">
+                        <div class="nx-chips"></div>
+                        <input type="text" id="RequiredSkillsInput" class="border-0 flex-grow-1" style="outline:none;min-width:140px" placeholder="Add a skill…" />
+                        <input type="hidden" asp-for="RequiredSkills" />
+                    </div>
+                    <div class="d-flex flex-wrap gap-1 mt-2 mb-3">
+                        <span class="small text-muted me-1">Suggestions:</span>
+                        @foreach (var s in suggestions) { <button type="button" class="nx-chip" data-suggest="@s"><i class="bi bi-plus"></i>@s</button> }
+                    </div>
+
+                    <label class="form-label" for="PreferredSkillsInput">Preferred skills <span class="text-muted fw-normal">· @MockDataStore.PreferredWeight% of match score</span></label>
+                    <div data-tags class="form-control d-flex flex-wrap gap-2 align-items-center" style="min-height:44px">
+                        <div class="nx-chips"></div>
+                        <input type="text" id="PreferredSkillsInput" class="border-0 flex-grow-1" style="outline:none;min-width:140px" placeholder="Add a skill…" />
+                        <input type="hidden" asp-for="PreferredSkills" />
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label" asp-for="Education">Educational requirements</label>
+                        <input class="form-control" asp-for="Education" placeholder="e.g. B.E./B.Tech/MCA or equivalent experience" />
+                        <div class="form-text">Shown to candidates. Not used in the match score unless you add it as a criterion.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="nx-card mb-3">
+                <div class="nx-card-head">
+                    <div><h2>Description</h2><div class="nx-sub">Shown on the public job page</div></div>
+                    <button type="button" class="btn btn-ai btn-sm" data-ai-draft="#Description"><i class="bi bi-stars"></i> Draft with AI</button>
+                </div>
+                <div class="nx-card-body">
+                    <div class="nx-callout nx-callout-ai mb-3" data-ai-draft-note hidden>
+                        <i class="bi bi-stars"></i>
+                        <span><strong>AI-generated draft.</strong> Review and edit it before publishing. Check for exaggerated requirements or exclusionary language. It is generated by the local model and never published automatically.</span>
+                    </div>
+                    <label class="form-label required" asp-for="Description">About the role</label>
+                    <textarea class="form-control" asp-for="Description" rows="9" required></textarea>
+                    <div class="invalid-feedback">Add a description.</div>
+                    <label class="form-label mt-3" asp-for="Responsibilities">Responsibilities <span class="text-muted fw-normal">· one per line</span></label>
+                    <textarea class="form-control" asp-for="Responsibilities" rows="4"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="nx-sticky">
+                <div class="nx-card mb-3">
+                    <div class="nx-card-head"><h2>Publishing</h2></div>
+                    <div class="nx-card-body">
+                        <label class="form-label" asp-for="Recruiter">Assigned recruiter</label>
+                        <select class="form-select mb-3" asp-for="Recruiter">
+                            @foreach (var u in Data.Team.Where(u => u.Role is "Recruiter" or "Company Admin")) { <option>@u.Name</option> }
+                        </select>
+                        <label class="form-label" asp-for="Salary">Salary range <span class="text-muted fw-normal">(optional)</span></label>
+                        <input class="form-control mb-3" asp-for="Salary" placeholder="e.g. ₹18–28 LPA" />
+                        <div class="small text-muted mb-3">
+                            Status: <span class="nx-badge nx-badge-neutral">@Model.Status</span><br />
+                            Active postings: @Data.Subscription.Usage[0].Used of @Data.Subscription.Usage[0].Limit on your plan.
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary" type="submit" name="intent" value="publish"><i class="bi bi-send"></i> @(Model.Status == "Published" ? "Save & keep published" : "Publish")</button>
+                            <button class="btn btn-outline-secondary" type="submit" name="intent" value="draft" formnovalidate>Save as draft</button>
+                            <a class="btn btn-ghost" asp-action="@(isEdit ? "Details" : "Index")" asp-route-id="@Model.Id">Cancel</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="nx-callout nx-callout-neutral">
+                    <i class="bi bi-info-circle"></i>
+                    <span>Changing required skills after applications arrive creates a new screening configuration version. Existing scores stay unchanged until you re-run screening.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>

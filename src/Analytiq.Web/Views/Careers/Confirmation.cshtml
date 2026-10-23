@@ -1,0 +1,30 @@
+@model Job?
+@inject MockDataStore Data
+@{
+    ViewData["Title"] = "Application received";
+    string code = ViewBag.Code;
+    string? name = ViewBag.Name;
+}
+<div class="container py-5" style="max-width:640px">
+    <div class="nx-card nx-card-body text-center p-4 p-md-5">
+        <div class="mx-auto mb-3 d-grid" style="width:64px;height:64px;border-radius:50%;background:var(--nx-success-50);color:var(--nx-success);place-items:center;font-size:2rem"><i class="bi bi-check2"></i></div>
+        <h1 class="h3">Application received</h1>
+        <p class="text-muted">Thanks@(string.IsNullOrWhiteSpace(name) ? "" : $", {name}"). Your application for <strong class="text-body">@(Model?.Title ?? "this role")</strong> at @Data.Company.Name has been submitted. A confirmation email is on its way.</p>
+        <div class="nx-card nx-card-body my-4" style="background:var(--nx-surface-2)">
+            <div class="small text-muted">Your tracking code</div>
+            <div class="fs-3 fw-bold tabular letter-spacing-1"><code class="text-body">@code</code></div>
+            <div class="small text-muted">Keep this to check your application status.</div>
+        </div>
+        <ol class="nx-stepper mb-4">
+            <li class="done">Submitted</li>
+            <li class="current">Under review</li>
+            <li>Interview</li>
+            <li>Decision</li>
+        </ol>
+        <div class="d-flex gap-2 justify-content-center flex-wrap">
+            <a class="btn btn-primary" asp-action="Status" asp-route-code="ZF-7K2Q9">Track application</a>
+            <a class="btn btn-outline-secondary" asp-action="Index">See other roles</a>
+        </div>
+        <p class="small text-muted mt-3 mb-0">Prototype: tracking links to a sample application (ZF-7K2Q9).</p>
+    </div>
+</div>

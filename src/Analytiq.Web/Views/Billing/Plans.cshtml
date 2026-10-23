@@ -1,0 +1,10 @@
+@model MockDataStore
+@{
+    ViewData["Title"] = "Plans";
+    ViewData["CurrentPlan"] = Model.Subscription.Plan;
+}
+<div class="nx-breadcrumb"><a asp-action="Index">Billing &amp; usage</a> / Plans</div>
+<div class="nx-page-head">
+    <div><h1>Choose a plan</h1><p>Upgrades take effect immediately and are pro-rated. Downgrades apply at the next renewal.</p></div>
+</div>
+<partial name="_PlanCards" model="Model.Plans" />

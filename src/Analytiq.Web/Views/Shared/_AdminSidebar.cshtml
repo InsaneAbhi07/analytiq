@@ -1,0 +1,32 @@
+@{
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
+    string Active(string a) => action == a ? "active" : "";
+}
+<div class="nx-sidebar-head">
+    <a class="nx-brand" asp-controller="Admin" asp-action="Index">
+        <span class="nx-brand-mark">N</span>
+        <span>Analytiq Platform<small>Super Admin console</small></span>
+    </a>
+</div>
+<div class="nx-tenant">
+    <i class="bi bi-shield-lock fs-5" style="color:#fbbf24"></i>
+    <div>
+        <div class="fw-medium">Platform scope</div>
+        <small>No access to resume contents</small>
+    </div>
+</div>
+<nav>
+    <ul class="nx-nav">
+        <li><a class="@Active("Index")" asp-controller="Admin" asp-action="Index"><i class="bi bi-speedometer2"></i>Overview</a></li>
+        <li><a class="@Active("Companies")" asp-controller="Admin" asp-action="Companies"><i class="bi bi-buildings"></i>Companies</a></li>
+        <li><a class="@Active("Plans")" asp-controller="Admin" asp-action="Plans"><i class="bi bi-layers"></i>Subscription plans</a></li>
+        <li><a class="@Active("Processing")" asp-controller="Admin" asp-action="Processing"><i class="bi bi-cpu"></i>AI processing</a></li>
+        <li><a class="@Active("Audit")" asp-controller="Admin" asp-action="Audit"><i class="bi bi-journal-text"></i>Security &amp; audit</a></li>
+        <li><a class="@Active("System")" asp-controller="Admin" asp-action="System"><i class="bi bi-sliders"></i>System settings</a></li>
+        <li class="nx-nav-section">Prototype</li>
+        <li><a asp-controller="Dashboard" asp-action="Index"><i class="bi bi-arrow-left-right"></i>Company workspace</a></li>
+    </ul>
+</nav>
+<div class="nx-sidebar-foot">
+    <div class="nx-ai-health"><span class="nx-dot"></span><span>All services operational</span></div>
+</div>

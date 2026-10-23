@@ -1,0 +1,88 @@
+@model List<Job>
+@inject MockDataStore Data
+@{
+    ViewData["Title"] = $"Careers at {Data.Company.Name}";
+    List<string> locations = ViewBag.Locations;
+}
+
+<section class="nx-careers-hero">
+    <div class="container">
+        <div class="d-flex align-items-center gap-3 mb-3">
+            <span class="nx-company-logo">ZF</span>
+            <div>
+                <div class="small" style="color:#9aa3bd">Careers</div>
+                <div class="fw-semibold text-white">@Data.Company.Name</div>
+            </div>
+        </div>
+        <h1>Build the payments infrastructure India's banks run on.</h1>
+        <p class="mb-0" style="color:#b9c0d4;max-width:620px">We're a team of @Data.Departments.Sum(d => d.Members) people in Bengaluru, Pune and remote across India. We hire for skills and potential, and a person reviews every application.</p>
+    </div>
+</section>
+
+<div class="container pb-5">
+    <form method="get" class="nx-card nx-careers-search row g-2 mx-0 mb-4 position-relative" role="search">
+        <div class="col-md-5">
+            <label class="visually-hidden" for="q">Keyword</label>
+            <div class="input-icon"><i class="bi bi-search"></i><input class="form-control" id="q" name="q" value="@ViewBag.Q" placeholder="Job title, skill or team" /></div>
+        </div>
+        <div class="col-md-3">
+            <label class="visually-hidden" for="location">Location</label>
+            <select class="form-select" id="location" name="location">
+                <option value="">All locations</option>
+                @foreach (var l in locations) { <option selected="@(l == (string?)ViewBag.Location)">@l</option> }
+                <option value="Remote" selected="@((string?)ViewBag.Location == "Remote")">Remote</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="visually-hidden" for="type">Employment type</label>
+            <select class="form-select" id="type" name="type">
+                <option value="">Any type</option>
+                @foreach (var t in new[] { "Full-time", "Part-time", "Contract", "Internship" }) { <option selected="@(t == (string?)ViewBag.Type)">@t</option> }
+            </select>
+        </div>
+        <div class="col-md-2 d-grid"><button class="btn btn-primary" type="submit">Search</button></div>
+    </form>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h5 mb-0">@Model.Count open @(Model.Count == 1 ? "role" : "roles")</h2>
+        @if (ViewBag.Q is not null || ViewBag.Location is not null || ViewBag.Type is not null)
+        {
+            <a class="small" asp-action="Index">Clear search</a>
+        }
+    </div>
+
+    @if (Model.Count == 0)
+    {
+        <div class="nx-card nx-empty">
+            <i class="bi bi-search"></i>
+            <h3>No roles match your search</h3>
+            <p class="small">Try a different keyword or location.</p>
+            <a class="btn btn-outline-secondary btn-sm" asp-action="Index">See all roles</a>
+        </div>
+    }
+    <div class="d-grid gap-3">
+        @foreach (var j in Model)
+        {
+            <a class="nx-card nx-job-card" asp-action="Job" asp-route-id="@j.Id">
+                <div class="d-flex justify-content-between gap-3 flex-wrap">
+                    <div>
+                        <h3>@j.Title</h3>
+                        <div class="nx-job-meta">
+                            <span><i class="bi bi-diagram-3"></i>@j.Department</span>
+                            <span><i class="bi bi-geo-alt"></i>@j.Location</span>
+                            <span><i class="bi bi-house-door"></i>@j.WorkMode</span>
+                            <span><i class="bi bi-clock"></i>@j.EmploymentType</span>
+                            <span><i class="bi bi-bar-chart-steps"></i>@j.MinExperience–@j.MaxExperience yrs</span>
+                        </div>
+                        <div class="nx-chips mt-2">@foreach (var s in j.RequiredSkills.Take(5)) { <span class="nx-chip">@s</span> }</div>
+                    </div>
+                    <div class="text-md-end">
+                        <div class="fw-medium">@j.Salary</div>
+                        <div class="small text-muted">Apply by @j.Deadline.ToString("dd MMM yyyy")</div>
+                        <span class="btn btn-outline-secondary btn-sm mt-2">View role <i class="bi bi-arrow-right"></i></span>
+                    </div>
+                </div>
+            </a>
+        }
+    </div>
+</div>

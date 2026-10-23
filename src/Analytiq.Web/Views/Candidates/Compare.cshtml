@@ -1,0 +1,69 @@
+@model List<Application>
+@{
+    ViewData["Title"] = "Compare candidates";
+    var job = Model.First().Job;
+    var sameJob = Model.All(a => a.JobId == job.Id);
+    var skills = sameJob ? job.RequiredSkills.Concat(job.PreferredSkills).ToList() : [];
+}
+
+<div class="nx-breadcrumb"><a asp-action="Index">Candidates</a> / Compare</div>
+<div class="nx-page-head">
+    <div>
+        <h1>Compare candidates</h1>
+        <p>@(sameJob ? $"{Model.Count} applicants for {job.Title}" : "Candidates from different jobs. Skill rows are hidden because the criteria differ.")</p>
+    </div>
+    <a class="btn btn-outline-secondary" asp-action="Index"><i class="bi bi-arrow-left"></i> Back to candidates</a>
+</div>
+
+<div class="nx-card">
+    <div class="nx-compare" style="--cols:@Model.Count">
+        <div class="nx-compare-label"></div>
+        @foreach (var a in Model)
+        {
+            <div>
+                <div class="nx-person mb-2">@Html.Avatar(a.Candidate.Initials)<div><a class="nx-person-name" asp-action="Details" asp-route-id="@a.Id">@a.Candidate.FullName</a><span class="nx-person-sub">@a.Candidate.Headline</span></div></div>
+            </div>
+        }
+
+        <div class="nx-compare-label">Match score</div>
+        @foreach (var a in Model) { <div>@Html.Score(a.Screening?.Score)</div> }
+
+        <div class="nx-compare-label">Stage</div>
+        @foreach (var a in Model) { <div><span class="nx-badge @Ui.StageBadge(a.Stage)">@Ui.StageLabel(a.Stage)</span></div> }
+
+        <div class="nx-compare-label">Experience</div>
+        @foreach (var a in Model) { <div>@(a.Candidate.ExperienceYears is { } y ? $"{y:0.#} years" : "Unverified")</div> }
+
+        @foreach (var skill in skills)
+        {
+            var required = job.RequiredSkills.Contains(skill);
+            <div class="nx-compare-label">@skill <span class="fw-normal">@(required ? "· required" : "· preferred")</span></div>
+            @foreach (var a in Model)
+            {
+                var m = a.Screening?.RequiredMatched.Concat(a.Screening.PreferredMatched).FirstOrDefault(x => x.Skill == skill);
+                <div>
+                    @if (a.Screening is null) { <span class="text-muted small">Not screened</span> }
+                    else if (m is null) { <span class="nx-chip nx-chip-missing">No evidence</span> }
+                    else if (m.Type == SkillMatchType.Exact) { <span class="nx-chip nx-chip-match"><i class="bi bi-check2"></i> Exact</span> }
+                    else { <span class="nx-chip nx-chip-semantic">Related: @m.MatchedTerm</span> }
+                </div>
+            }
+        }
+
+        <div class="nx-compare-label">Education</div>
+        @foreach (var a in Model) { <div class="small">@string.Join("; ", a.Candidate.Education)</div> }
+
+        <div class="nx-compare-label">Certifications</div>
+        @foreach (var a in Model) { <div class="small">@(a.Candidate.Certifications.Count == 0 ? "—" : string.Join("; ", a.Candidate.Certifications))</div> }
+
+        <div class="nx-compare-label">Data quality</div>
+        @foreach (var a in Model)
+        {
+            <div class="small">
+                @(a.Candidate.ParsingConfidence is { } pc ? $"{pc}% parsing confidence" : "—")
+                @if (a.Screening?.Warnings.Count > 0) { <div class="text-warning-emphasis"><i class="bi bi-exclamation-triangle"></i> @a.Screening.Warnings.Count warning(s)</div> }
+            </div>
+        }
+    </div>
+</div>
+<p class="small text-muted mt-3"><i class="bi bi-info-circle me-1"></i>Comparison shows only job-related criteria from the resume. Verify skills marked “related” or “no evidence” before deciding.</p>

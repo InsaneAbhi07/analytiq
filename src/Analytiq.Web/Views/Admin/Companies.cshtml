@@ -1,0 +1,57 @@
+@model List<Company>
+@inject MockDataStore Data
+@{ ViewData["Title"] = "Companies"; }
+
+<div class="nx-page-head">
+    <div><h1>Companies</h1><p>@Model.Count registered tenants. Status changes are audited and the company admin is notified.</p></div>
+</div>
+
+<div class="nx-card" data-filter-table>
+    <div class="nx-filters">
+        <div class="input-icon"><i class="bi bi-search"></i><input class="form-control" data-filter="search" placeholder="Search company, email or city" aria-label="Search companies" /></div>
+        <select class="form-select" data-filter-key="status" aria-label="Status"><option value="">All statuses</option>@foreach (var s in new[] { "Active", "Trial", "Suspended", "Deactivated" }) { <option>@s</option> }</select>
+        <select class="form-select" data-filter-key="plan" aria-label="Plan"><option value="">All plans</option>@foreach (var p in Data.Plans) { <option>@p.Name</option> }</select>
+        <span class="ms-auto small text-muted"><span data-filter-count>@Model.Count</span> shown</span>
+    </div>
+    <div class="nx-table-wrap">
+        <table class="nx-table">
+            <thead><tr><th data-sort="name">Company</th><th>Plan</th><th>Status</th><th class="text-end" data-sort="users">Users</th><th class="text-end" data-sort="jobs">Active jobs</th><th>Credits used</th><th data-sort="created">Registered</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var c in Model)
+                {
+                    var pct = (int)Math.Round(c.CreditsUsed * 100.0 / c.CreditsLimit);
+                    <tr data-row data-search="@c.Name @c.Email @c.City @c.Industry" data-status="@c.Status" data-plan="@c.Plan" data-name="@c.Name" data-users="@c.Users" data-jobs="@c.ActiveJobs" data-created="@c.CreatedOn.ToString("yyyyMMdd")">
+                        <td><div class="fw-medium">@c.Name</div><div class="small text-muted">@c.Industry · @c.City · @c.Email</div></td>
+                        <td><span class="nx-badge nx-badge-outline">@c.Plan</span></td>
+                        <td><span class="nx-badge @Ui.CompanyBadge(c.Status)">@c.Status</span></td>
+                        <td class="text-end tabular">@c.Users</td>
+                        <td class="text-end tabular">@c.ActiveJobs</td>
+                        <td style="min-width:140px"><div class="small tabular mb-1">@c.CreditsUsed.ToString("N0") / @c.CreditsLimit.ToString("N0")</div><div class="nx-meter @(pct >= 100 ? "over" : pct >= 80 ? "warn" : "")"><span style="width:@Math.Min(100, pct)%"></span></div></td>
+                        <td class="small text-muted">@c.CreatedOn.ToString("dd MMM yyyy")</td>
+                        <td class="text-end">
+                            <div class="dropdown">
+                                <button class="btn btn-ghost btn-sm btn-icon" data-bs-toggle="dropdown" aria-label="Actions for @c.Name"><i class="bi bi-three-dots"></i></button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#" data-confirm="Assign a different subscription plan to @c.Name. Billing is adjusted at the next renewal." data-confirm-title="Assign plan" data-confirm-ok="Assign" data-confirm-reason data-toast="Plan assignment recorded (prototype)."><i class="bi bi-layers me-2"></i>Assign plan</a></li>
+                                    <li><a class="dropdown-item" href="#" data-confirm="Extend the trial or grace period for @c.Name by 14 days." data-confirm-title="Extend period?" data-confirm-ok="Extend" data-confirm-reason data-toast="Period extended (prototype)."><i class="bi bi-calendar-plus me-2"></i>Extend trial / grace</a></li>
+                                    @if (c.Status is "Suspended" or "Deactivated")
+                                    {
+                                        <li><a class="dropdown-item" href="#" data-confirm="Users of @c.Name regain access immediately." data-confirm-title="Reactivate company?" data-confirm-ok="Reactivate" data-confirm-reason data-toast="Company reactivated (prototype)."><i class="bi bi-play-circle me-2"></i>Reactivate</a></li>
+                                    }
+                                    else
+                                    {
+                                        <li><a class="dropdown-item" href="#" data-confirm="Users of @c.Name can't sign in while suspended. Data is kept. Their careers page shows ‘not accepting applications’." data-confirm-title="Suspend company?" data-confirm-ok="Suspend" data-confirm-variant="warning" data-confirm-reason data-toast="Company suspended (prototype)."><i class="bi bi-pause-circle me-2"></i>Suspend</a></li>
+                                    }
+                                    <li><hr class="dropdown-divider" /></li>
+                                    <li><a class="dropdown-item" href="#" data-confirm="Support access to @c.Name's workspace needs approval from their Company Admin. It is time-limited to 2 hours and fully audited." data-confirm-title="Request support access" data-confirm-ok="Send request" data-confirm-reason data-toast="Support-access request sent to the company admin (prototype)."><i class="bi bi-key me-2"></i>Request support access</a></li>
+                                    <li><a class="dropdown-item text-danger" href="#" data-confirm="Deactivation stops all access and schedules data deletion per the retention policy after 30 days." data-confirm-title="Deactivate company?" data-confirm-ok="Deactivate" data-confirm-variant="danger" data-confirm-reason data-toast="Company deactivated (prototype)."><i class="bi bi-x-octagon me-2"></i>Deactivate</a></li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                <tr class="nx-table-empty" hidden><td colspan="8">No companies match these filters.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>

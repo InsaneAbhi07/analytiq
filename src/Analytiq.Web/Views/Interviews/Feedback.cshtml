@@ -1,0 +1,95 @@
+@model Interview
+@{
+    ViewData["Title"] = "Interview feedback";
+    var a = Model.Application;
+    var f = Model.Feedback;
+    var criteria = new[]
+    {
+        ("TechnicalSkills", "Technical skills", "Depth in the job's required skills", f?.TechnicalSkills),
+        ("ProblemSolving", "Problem solving", "Approach, reasoning and trade-offs", f?.ProblemSolving),
+        ("Communication", "Communication", "Clarity when explaining work (not accent or fluency)", f?.Communication),
+        ("RoleKnowledge", "Role knowledge", "Understanding of the responsibilities in this job", f?.RoleKnowledge),
+    };
+}
+
+<div class="nx-breadcrumb"><a asp-action="Index">Interviews</a> / Feedback</div>
+<div class="nx-page-head">
+    <div>
+        <h1>@(f is null ? "Record interview feedback" : "Interview feedback")</h1>
+        <p>@a.Candidate.FullName · @a.Job.Title · Round @Model.Round: @Model.Title · @Model.StartsAt.ToString("dd MMM yyyy, h:mm tt")</p>
+    </div>
+    @if (f is not null) { <span class="nx-badge nx-badge-success"><i class="bi bi-lock"></i> Submitted by @f.By · locked</span> }
+</div>
+
+<form asp-action="Feedback" asp-route-id="@Model.Id" method="post" class="needs-validation" novalidate>
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="nx-card mb-3">
+                <div class="nx-card-head"><div><h2>Structured ratings</h2><div class="nx-sub">1 = no evidence · 3 = meets the bar · 5 = strong evidence</div></div></div>
+                <div class="nx-card-body">
+                    @foreach (var (key, label, help, value) in criteria)
+                    {
+                        <fieldset class="d-flex flex-wrap justify-content-between align-items-center gap-2 py-2 border-bottom">
+                            <legend class="float-none w-auto m-0 p-0" style="font-size:inherit">
+                                <span class="fw-medium d-block">@label</span>
+                                <span class="small text-muted">@help</span>
+                            </legend>
+                            <div class="nx-rating">
+                                @for (var n = 1; n <= 5; n++)
+                                {
+                                    <input type="radio" name="@key" id="@key-@n" value="@n" checked="@(value == n)" disabled="@(f is not null)" required />
+                                    <label for="@key-@n">@n</label>
+                                }
+                            </div>
+                        </fieldset>
+                    }
+                </div>
+            </div>
+            <div class="nx-card">
+                <div class="nx-card-head"><h2>Evidence &amp; recommendation</h2></div>
+                <div class="nx-card-body">
+                    <label class="form-label required" for="evidence">What did you observe?</label>
+                    <textarea class="form-control mb-3" id="evidence" name="evidence" rows="5" required minlength="30" readonly="@(f is not null)" placeholder="Specific answers, code, examples. Avoid impressions and personal attributes.">@f?.Evidence</textarea>
+                    <div class="invalid-feedback mb-2">Add at least a few sentences of evidence.</div>
+                    <label class="form-label required" for="recommendation">Recommendation</label>
+                    <select class="form-select" id="recommendation" name="recommendation" required disabled="@(f is not null)">
+                        <option value="">Select…</option>
+                        @foreach (var r in new[] { "Strong advance", "Advance", "Hold — needs another round", "Do not advance" }) { <option selected="@(f?.Recommendation == r)">@r</option> }
+                    </select>
+                    <div class="form-text">This is input to the hiring decision. The recruiter and hiring manager make the final call.</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="nx-card mb-3">
+                <div class="nx-card-head"><h2>Interview</h2></div>
+                <div class="nx-card-body">
+                    <dl class="nx-dl">
+                        <dt>Candidate</dt><dd>@a.Candidate.FullName</dd>
+                        <dt>Job</dt><dd>@a.Job.Title</dd>
+                        <dt>Type</dt><dd>@Model.Type · @Model.DurationMinutes min</dd>
+                        <dt>Where</dt><dd>@Model.Location</dd>
+                        <dt>Panel</dt><dd>@string.Join(", ", Model.Interviewers)</dd>
+                        <dt>Attendance</dt><dd><span class="nx-badge @Ui.InterviewBadge(Model.Status)">@Ui.InterviewLabel(Model.Status)</span></dd>
+                    </dl>
+                    <div class="small fw-semibold mt-3 mb-1">Required skills for this job</div>
+                    <div class="nx-chips">@foreach (var s in a.Job.RequiredSkills) { <span class="nx-chip">@s</span> }</div>
+                </div>
+            </div>
+            @if (f is null)
+            {
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle"></i> Submit feedback</button>
+                    <button class="btn btn-outline-secondary" type="button" data-toast="Draft saved (prototype)." data-toast-variant="info">Save draft</button>
+                </div>
+            }
+            else
+            {
+                <div class="nx-card nx-card-body text-center">
+                    <div class="small text-muted">Average rating</div>
+                    <div class="display-6 fw-semibold">@f.Average.ToString("0.0")<span class="fs-6 text-muted"> / 5</span></div>
+                </div>
+            }
+        </div>
+    </div>
+</form>

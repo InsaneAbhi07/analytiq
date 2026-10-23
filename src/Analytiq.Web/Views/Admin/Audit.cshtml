@@ -1,0 +1,35 @@
+@model List<AuditEvent>
+@{ ViewData["Title"] = "Security & audit"; }
+
+<div class="nx-page-head">
+    <div><h1>Security &amp; audit log</h1><p>Append-only record of sensitive actions across the platform. Entries can't be edited or deleted.</p></div>
+    <button class="btn btn-outline-secondary" data-toast="Audit export queued (prototype)." data-toast-variant="info"><i class="bi bi-download"></i> Export</button>
+</div>
+
+<div class="nx-card" data-filter-table>
+    <div class="nx-filters">
+        <div class="input-icon"><i class="bi bi-search"></i><input class="form-control" data-filter="search" placeholder="Search action, actor, company, IP" aria-label="Search audit log" /></div>
+        <select class="form-select" data-filter-key="severity" aria-label="Severity"><option value="">All severities</option><option>Info</option><option>Warning</option><option>High</option></select>
+        <span class="ms-auto small text-muted"><span data-filter-count>@Model.Count</span> events</span>
+    </div>
+    <div class="nx-table-wrap">
+        <table class="nx-table">
+            <thead><tr><th>Time</th><th>Severity</th><th>Action</th><th>Target</th><th>Company</th><th>Actor</th><th>IP</th></tr></thead>
+            <tbody>
+                @foreach (var e in Model)
+                {
+                    <tr data-row data-severity="@e.Severity">
+                        <td class="small text-muted text-nowrap">@e.On.ToString("dd MMM, HH:mm")</td>
+                        <td><span class="nx-badge @Ui.SeverityBadge(e.Severity)">@e.Severity</span></td>
+                        <td class="small fw-medium">@e.Action</td>
+                        <td class="small">@e.Target</td>
+                        <td class="small">@e.Company</td>
+                        <td class="small text-muted">@e.Actor</td>
+                        <td class="small text-muted"><code>@e.Ip</code></td>
+                    </tr>
+                }
+                <tr class="nx-table-empty" hidden><td colspan="7">No events match.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,246 @@
+@model MockDataStore
+@{
+    ViewData["Title"] = "Settings";
+    string tab = ViewBag.Tab;
+    var tabs = new[] { ("company", "Company profile"), ("team", "Team & roles"), ("departments", "Departments"), ("screening", "Screening"), ("privacy", "Privacy & retention"), ("integrations", "Integrations") };
+    string Active(string t) => t == tab ? "active" : "";
+    string Show(string t) => t == tab ? "show active" : "";
+}
+
+<div class="nx-page-head">
+    <div><h1>Settings</h1><p>Company-wide configuration for @Model.Company.Name.</p></div>
+</div>
+
+<ul class="nav nx-tabs mb-3" role="tablist">
+    @foreach (var (key, label) in tabs)
+    {
+        <li class="nav-item"><button class="nav-link @Active(key)" data-bs-toggle="tab" data-bs-target="#s-@key" type="button" role="tab">@label</button></li>
+    }
+</ul>
+
+<div class="tab-content">
+    @* ---------- Company ---------- *@
+    <div class="tab-pane fade @Show("company")" id="s-company" role="tabpanel">
+        <form asp-action="Save" asp-route-tab="company" method="post" class="nx-card needs-validation" novalidate>
+            <div class="nx-card-body row g-3">
+                <div class="col-md-6"><label class="form-label required" for="cn">Company name</label><input class="form-control" id="cn" value="@Model.Company.Name" required /></div>
+                <div class="col-md-6"><label class="form-label" for="ind">Industry</label><input class="form-control" id="ind" value="@Model.Company.Industry" /></div>
+                <div class="col-md-6"><label class="form-label required" for="em">Business email</label><input class="form-control" id="em" type="email" value="@Model.Company.Email" required /></div>
+                <div class="col-md-6"><label class="form-label" for="city">Head office city</label><input class="form-control" id="city" value="@Model.Company.City" /></div>
+                <div class="col-md-6"><label class="form-label" for="gst">GSTIN <span class="text-muted fw-normal">(for invoices)</span></label><input class="form-control" id="gst" placeholder="29ABCDE1234F1Z5" /></div>
+                <div class="col-md-6">
+                    <label class="form-label" for="slug">Careers page URL</label>
+                    <div class="input-group"><span class="input-group-text small">careers.analytiq.ai/</span><input class="form-control" id="slug" value="@Model.Company.Slug" /></div>
+                </div>
+                <div class="col-12"><label class="form-label" for="about">About the company <span class="text-muted fw-normal">(shown on careers page)</span></label><textarea class="form-control" id="about" rows="3">Zenith Fintech builds reconciliation and payments infrastructure for Indian banks and NBFCs.</textarea></div>
+            </div>
+            <div class="nx-card-foot text-end"><button class="btn btn-primary" type="submit">Save changes</button></div>
+        </form>
+    </div>
+
+    @* ---------- Team ---------- *@
+    <div class="tab-pane fade @Show("team")" id="s-team" role="tabpanel">
+        <div class="nx-card">
+            <div class="nx-card-head">
+                <div><h2>Team members</h2><div class="nx-sub">@Model.Subscription.Usage[2].Used of @Model.Subscription.Usage[2].Limit recruiter seats used · interviewers don't use a seat</div></div>
+                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#inviteModal"><i class="bi bi-person-plus"></i> Invite</button>
+            </div>
+            <div class="nx-table-wrap">
+                <table class="nx-table">
+                    <thead><tr><th>Name</th><th>Role</th><th>Department</th><th>Status</th><th>Last active</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var u in Model.Team)
+                        {
+                            <tr>
+                                <td><div class="nx-person">@Html.Avatar(u.Initials)<div><span class="nx-person-name">@u.Name @(u.Id == Model.CurrentUser.Id ? "(you)" : "")</span><span class="nx-person-sub">@u.Email</span></div></div></td>
+                                <td>
+                                    <select class="form-select form-select-sm" style="width:auto" aria-label="Role for @u.Name" disabled="@(u.Id == Model.CurrentUser.Id)" onchange="nx.toast('Role changed to ' + this.value + '. Logged in audit trail (prototype).')">
+                                        @foreach (var r in new[] { "Company Admin", "Recruiter", "Interviewer" }) { <option selected="@(r == u.Role)">@r</option> }
+                                    </select>
+                                </td>
+                                <td class="small">@u.Department</td>
+                                <td><span class="nx-badge @Ui.CompanyBadge(u.Status)">@u.Status</span></td>
+                                <td class="small text-muted">@(u.LastActive is { } la ? Ui.Ago(la) : "—")</td>
+                                <td class="text-end">
+                                    @if (u.Id != Model.CurrentUser.Id)
+                                    {
+                                        <button class="btn btn-ghost btn-sm text-danger" data-confirm="@u.Name will lose access immediately. Their past actions stay in the audit log." data-confirm-title="Deactivate user?" data-confirm-ok="Deactivate" data-confirm-variant="danger" data-toast="User deactivated (prototype).">Deactivate</button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="row g-3 mt-1">
+            @foreach (var (role, desc) in new[]
+            {
+                ("Company Admin", "Everything in the company workspace, including billing, team, settings and compensation data."),
+                ("Recruiter", "Jobs, candidates, screening, interviews and offers for assigned or permitted jobs. Can export authorised reports."),
+                ("Interviewer", "Only assigned interviews: candidate name, resume and job details, plus submitting feedback. No scores, notes or salary."),
+            })
+            {
+                <div class="col-md-4"><div class="nx-card nx-card-body h-100"><div class="fw-semibold mb-1">@role</div><div class="small text-muted">@desc</div></div></div>
+            }
+        </div>
+    </div>
+
+    @* ---------- Departments ---------- *@
+    <div class="tab-pane fade @Show("departments")" id="s-departments" role="tabpanel">
+        <div class="nx-card">
+            <div class="nx-card-head"><h2>Departments &amp; hiring teams</h2><button class="btn btn-primary btn-sm" data-toast="Add-department form would open (prototype)." data-toast-variant="info"><i class="bi bi-plus-lg"></i> Add department</button></div>
+            <div class="nx-table-wrap">
+                <table class="nx-table">
+                    <thead><tr><th>Department</th><th>Head / hiring manager</th><th class="text-end">Employees</th><th class="text-end">Open jobs</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var d in Model.Departments)
+                        {
+                            <tr>
+                                <td class="fw-medium">@d.Name</td>
+                                <td>@d.Head</td>
+                                <td class="text-end tabular">@d.Members</td>
+                                <td class="text-end tabular">@Model.Jobs.Count(j => j.Department == d.Name && j.Status == JobStatus.Published)</td>
+                                <td class="text-end"><button class="btn btn-ghost btn-sm" data-toast="Edit form would open (prototype)." data-toast-variant="info">Edit</button></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    @* ---------- Screening ---------- *@
+    <div class="tab-pane fade @Show("screening")" id="s-screening" role="tabpanel">
+        <form asp-action="Save" asp-route-tab="screening" method="post">
+            <div class="row g-3">
+                <div class="col-lg-7">
+                    <div class="nx-card" data-weights>
+                        <div class="nx-card-head"><div><h2>Default scoring weights</h2><div class="nx-sub">Used for new jobs. Each job records the configuration version it was screened with.</div></div></div>
+                        <div class="nx-card-body">
+                            @foreach (var (name, label, val) in new[] { ("w_req", "Required skills", MockDataStore.RequiredWeight), ("w_pref", "Preferred skills", MockDataStore.PreferredWeight), ("w_exp", "Relevant experience", MockDataStore.ExperienceWeight) })
+                            {
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between"><label class="form-label" for="@name">@label</label><span class="small fw-semibold tabular" data-weight-out="@name">@val%</span></div>
+                                    <input type="range" class="form-range" id="@name" name="@name" min="0" max="100" step="5" value="@val" />
+                                </div>
+                            }
+                            <div class="d-flex justify-content-between border-top pt-2"><span class="small fw-medium">Total</span><span class="small fw-semibold tabular" data-weights-total>100%</span></div>
+                            <div class="nx-callout nx-callout-warning mt-2" data-weights-warn hidden><i class="bi bi-exclamation-triangle"></i><span>Weights must add up to 100%.</span></div>
+                            <div class="nx-divider"></div>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="semcredit">Credit for related (semantic) skills</label>
+                                    <select class="form-select" id="semcredit"><option>50%</option><option selected>70%</option><option>85%</option><option>Don't count</option></select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="semth">Similarity threshold</label>
+                                    <input class="form-control" id="semth" type="number" step="0.05" min="0.5" max="0.95" value="0.70" />
+                                </div>
+                            </div>
+                            <div class="form-text mt-2">These are configurable product defaults, not validated measures of candidate quality.</div>
+                        </div>
+                        <div class="nx-card-foot text-end"><button class="btn btn-primary" type="submit">Save screening settings</button></div>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <div class="nx-card nx-card-body mb-3">
+                        <h2 class="h6">Safeguards (always on)</h2>
+                        <ul class="small ps-3 mb-0">
+                            <li>No automatic rejection based on scores.</li>
+                            <li>Rejections and overrides require a recorded reason.</li>
+                            <li>Name, photo, gender, age, religion, caste, marital status and location are excluded from scoring.</li>
+                            <li>Instructions embedded in resumes are treated as text and ignored.</li>
+                            <li>Unknown criteria are excluded, never guessed.</li>
+                        </ul>
+                    </div>
+                    <div class="nx-card nx-card-body">
+                        <h2 class="h6">AI processing</h2>
+                        <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" id="autoScreen" checked /><label class="form-check-label small" for="autoScreen">Screen new applications automatically (uses 1 credit each)</label></div>
+                        <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" id="ocr" /><label class="form-check-label small" for="ocr">OCR for scanned resumes <span class="text-muted">(requires Tesseract on the AI host)</span></label></div>
+                        <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="jdAi" disabled /><label class="form-check-label small" for="jdAi">AI job-description drafts <span class="nx-badge nx-badge-neutral">Professional plan</span></label></div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    @* ---------- Privacy ---------- *@
+    <div class="tab-pane fade @Show("privacy")" id="s-privacy" role="tabpanel">
+        <form asp-action="Save" asp-route-tab="privacy" method="post" class="nx-card">
+            <div class="nx-card-head"><div><h2>Candidate data retention</h2><div class="nx-sub">Configure to meet your obligations under applicable data-protection law (e.g. the DPDP Act, 2023). Get legal advice where needed.</div></div></div>
+            <div class="nx-card-body row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="ret1">Delete unsuccessful candidates' data after</label>
+                    <select class="form-select" id="ret1"><option>6 months</option><option selected>12 months</option><option>24 months</option></select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="ret2">Delete resume files of hired candidates after</label>
+                    <select class="form-select" id="ret2"><option>Move to HR system, then 30 days</option><option selected>12 months</option></select>
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="notice">Privacy notice shown on application form</label>
+                    <textarea class="form-control" id="notice" rows="4">We use the information you provide only to assess your application for this role and to contact you about it. Your resume is processed by an automated tool that helps recruiters review applications; a person makes every hiring decision. You can request access, correction or deletion of your data at any time.</textarea>
+                </div>
+                <div class="col-12">
+                    <div class="form-check"><input class="form-check-input" type="checkbox" id="talentpool" /><label class="form-check-label small" for="talentpool">Ask candidates for separate, optional consent to keep their profile for future roles</label></div>
+                </div>
+            </div>
+            <div class="nx-card-foot d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <span class="small text-muted">Open data requests: 1 correction, 0 deletion</span>
+                <button class="btn btn-primary" type="submit">Save privacy settings</button>
+            </div>
+        </form>
+    </div>
+
+    @* ---------- Integrations ---------- *@
+    <div class="tab-pane fade @Show("integrations")" id="s-integrations" role="tabpanel">
+        <div class="row g-3">
+            @foreach (var (icon, name, status, badge, desc) in new[]
+            {
+                ("bi-cpu", "Local AI service", "Connected", "nx-badge-success", "FastAPI service at http://localhost:8000 · all-MiniLM-L6-v2 · health check passed 2 min ago"),
+                ("bi-envelope", "Email delivery (SMTP)", "Not configured", "nx-badge-warning", "Interview invites and candidate notifications are queued but not sent until SMTP is configured."),
+                ("bi-credit-card", "Payment gateway", "Demo mode", "nx-badge-warning", "No gateway credentials configured. Billing runs in clearly labelled demo mode."),
+                ("bi-cloud", "External AI provider", "Disabled", "nx-badge-neutral", "Optional. Off by default. When enabled, no resume data is sent unless an admin explicitly allows it per feature."),
+                ("bi-hdd", "Resume storage", "Local private storage", "nx-badge-success", "Development storage outside the web root. Object-storage adapter available for production."),
+            })
+            {
+                <div class="col-md-6">
+                    <div class="nx-card nx-card-body h-100 d-flex gap-3">
+                        <span class="nx-kpi-icon flex-none"><i class="bi @icon"></i></span>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center gap-2"><strong>@name</strong><span class="nx-badge @badge">@status</span></div>
+                            <div class="small text-muted mt-1">@desc</div>
+                            <button class="btn btn-sm btn-outline-secondary mt-2" data-toast="Configuration panel would open (prototype)." data-toast-variant="info">Configure</button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="inviteModal" tabindex="-1" aria-labelledby="inviteTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content needs-validation" asp-action="Save" asp-route-tab="team" method="post" novalidate>
+            <div class="modal-header"><h2 class="modal-title" id="inviteTitle">Invite a team member</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+            <div class="modal-body">
+                <label class="form-label required" for="invEmail">Work email</label>
+                <input class="form-control mb-3" type="email" id="invEmail" required placeholder="name@@zenithfintech.example" />
+                <div class="invalid-feedback mb-2">Enter a valid email.</div>
+                <label class="form-label" for="invRole">Role</label>
+                <select class="form-select" id="invRole"><option>Recruiter</option><option>Interviewer</option><option>Company Admin</option></select>
+                <div class="form-text">They'll receive a one-time link to set their own password.</div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" type="submit">Send invite</button></div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Keep ?tab= in sync so reloads land on the same tab.
+        document.querySelectorAll(".nx-tabs [data-bs-toggle='tab']").forEach((b) =>
+            b.addEventListener("shown.bs.tab", () => history.replaceState(null, "", "?tab=" + b.dataset.bsTarget.replace("#s-", ""))));
+    </script>
+}

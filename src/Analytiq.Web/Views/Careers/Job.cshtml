@@ -1,0 +1,52 @@
+@model Job
+@inject MockDataStore Data
+@{
+    ViewData["Title"] = $"{Model.Title} · {Data.Company.Name}";
+}
+<div class="container py-4 py-md-5">
+    <div class="nx-breadcrumb"><a asp-action="Index">All roles</a> / @Model.Title</div>
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <h1 class="h2 mb-2">@Model.Title</h1>
+            <div class="nx-job-meta mb-4">
+                <span><i class="bi bi-diagram-3"></i>@Model.Department</span>
+                <span><i class="bi bi-geo-alt"></i>@Model.Location</span>
+                <span><i class="bi bi-house-door"></i>@Model.WorkMode</span>
+                <span><i class="bi bi-clock"></i>@Model.EmploymentType</span>
+                <span><i class="bi bi-people"></i>@Model.Openings opening(s)</span>
+            </div>
+            <div class="nx-prose">
+                <h2 class="mt-0">About the role</h2>
+                <p>@Model.Summary</p>
+                <h2>What you'll do</h2>
+                <ul>@foreach (var r in Model.Responsibilities) { <li>@r</li> }</ul>
+                <h2>What we're looking for</h2>
+                <ul>
+                    <li>@Model.MinExperience–@Model.MaxExperience years of relevant experience</li>
+                    @foreach (var s in Model.RequiredSkills) { <li>@s</li> }
+                </ul>
+                @if (Model.PreferredSkills.Count > 0)
+                {
+                    <h2>Nice to have</h2>
+                    <ul>@foreach (var s in Model.PreferredSkills) { <li>@s</li> }</ul>
+                }
+                <h2>Education</h2>
+                <p>@Model.Education</p>
+                <h2>How we review applications</h2>
+                <p>An automated tool helps our recruiters spot the skills this role needs in your resume. A person reviews every application and makes every decision. If you don't meet every requirement, apply anyway.</p>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="nx-card nx-card-body nx-sticky">
+                <div class="small text-muted">Salary range</div>
+                <div class="fs-5 fw-semibold mb-3">@Model.Salary</div>
+                <div class="small text-muted">Apply by</div>
+                <div class="fw-medium mb-3">@Model.Deadline.ToString("dd MMMM yyyy")</div>
+                <a class="btn btn-primary btn-lg w-100" asp-action="Apply" asp-route-id="@Model.Id">Apply now</a>
+                <div class="small text-muted mt-3"><i class="bi bi-clock me-1"></i>Takes about 3 minutes. You'll need your resume (PDF or DOCX).</div>
+                <div class="nx-divider"></div>
+                <button class="btn btn-outline-secondary btn-sm w-100" data-toast="Link copied to clipboard."><i class="bi bi-share"></i> Share this role</button>
+            </div>
+        </div>
+    </div>
+</div>

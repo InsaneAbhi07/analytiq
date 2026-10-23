@@ -1,0 +1,102 @@
+@model List<Plan>
+@{
+    Layout = "_PublicLayout";
+    ViewData["Title"] = "AI-assisted recruitment for growing teams";
+}
+
+<section class="nx-hero">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-6">
+                <div class="nx-eyebrow mb-3">Applicant tracking + explainable AI screening</div>
+                <h1 class="mb-3">Hire on evidence, not guesswork.</h1>
+                <p class="lead mb-4">Analytiq collects applications, reads every resume and shows recruiters exactly which job requirements each candidate meets. The evidence is quoted from the resume, and your team makes every decision.</p>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a class="btn btn-primary btn-lg" asp-controller="Account" asp-action="Register">Start free trial</a>
+                    <a class="btn btn-outline-secondary btn-lg" asp-controller="Dashboard" asp-action="Index">Explore the demo workspace</a>
+                </div>
+                <div class="small text-muted mt-3"><i class="bi bi-hdd-network me-1"></i>Runs on local open-source models. Resumes are never sent to paid AI APIs.</div>
+            </div>
+            <div class="col-lg-6">
+                <div class="nx-product-shot p-3">
+                    <div class="nx-card mb-2">
+                        <div class="nx-card-head"><strong class="small">Senior .NET Developer · screening</strong><span class="nx-badge nx-badge-success">12 screened</span></div>
+                        <ul class="nx-list">
+                            @foreach (var (name, score, chips) in new[] { ("Aarav Mehta", 96, new[] { "C#", "ASP.NET Core", "EF Core" }), ("Mohammed Faizan", 84, new[] { "C#", "SQL Server", "REST APIs" }), ("Sneha Kulkarni", 71, new[] { "C#", "REST APIs", "React" }) })
+                            {
+                                <li>
+                                    @Html.Score(score)
+                                    <div class="flex-grow-1"><div class="small fw-medium">@name</div><div class="nx-chips mt-1">@foreach (var c in chips) { <span class="nx-chip nx-chip-match">@c</span> }</div></div>
+                                    <span class="nx-badge nx-badge-outline">Review</span>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                    <div class="nx-callout nx-callout-ai"><i class="bi bi-quote"></i><span><strong>Evidence for “Entity Framework Core”:</strong> “Led a team of 4 building REST APIs on ASP.NET Core 8 with Entity Framework Core and SQL Server…” · Experience, Finlytics Solutions</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5" id="features">
+    <div class="container">
+        <div class="nx-eyebrow mb-2">The whole hiring lifecycle</div>
+        <h2 class="h3 mb-4">From job post to joining date, in one place.</h2>
+        <div class="row g-3">
+            @foreach (var (icon, title, text) in new[]
+            {
+                ("bi-briefcase", "Jobs & careers page", "Publish roles to a branded, mobile-friendly careers page with a unique link per job."),
+                ("bi-file-earmark-text", "Resume parsing", "PDF and DOCX resumes parsed in the background into skills, experience, education and projects."),
+                ("bi-diagram-3", "Explainable matching", "A 0–100 compatibility score with the matching skills, missing evidence and the exact resume lines behind it."),
+                ("bi-person-check", "Human-in-the-loop", "Shortlist, hold or reject with recorded reasons. Overrides are logged and nothing is rejected automatically."),
+                ("bi-calendar2-week", "Interviews & feedback", "Schedule rounds across time zones, assign panels and collect structured, evidence-based feedback."),
+                ("bi-envelope-paper", "Offers", "Track offers from draft to joining, with compensation visible only to authorised roles."),
+                ("bi-bar-chart-line", "Analytics", "Funnel, time-to-hire, source and department reports with small-sample warnings built in."),
+                ("bi-buildings", "Multi-tenant & secure", "Every company's data is isolated. Resumes are stored privately and downloads are audited."),
+            })
+            {
+                <div class="col-sm-6 col-lg-3"><div class="nx-card nx-feature"><i class="bi @icon"></i><h3>@title</h3><p>@text</p></div></div>
+            }
+        </div>
+    </div>
+</section>
+
+<section class="py-5" id="responsible-ai" style="background:var(--nx-surface-2);border-block:1px solid var(--nx-border)">
+    <div class="container">
+        <div class="row g-4 align-items-center">
+            <div class="col-lg-5">
+                <div class="nx-eyebrow mb-2">Responsible AI by design</div>
+                <h2 class="h3">AI that assists recruiters, and never replaces them.</h2>
+                <p class="text-muted">Scores are a sorting aid with configurable weights, not a verdict on a person. When something can't be read reliably from a resume, we say so instead of guessing.</p>
+            </div>
+            <div class="col-lg-7">
+                <div class="row g-3">
+                    @foreach (var (icon, text) in new[]
+                    {
+                        ("bi-slash-circle", "Never uses name, photo, gender, age, religion, caste or location"),
+                        ("bi-eye", "Every match shows its resume evidence"),
+                        ("bi-question-diamond", "Distinguishes missing evidence from a missing skill"),
+                        ("bi-shield-lock", "Ignores instructions hidden inside resumes"),
+                        ("bi-pencil-square", "Recruiters can override, and must give a reason"),
+                        ("bi-cpu", "Local models with no third-party AI calls by default"),
+                    })
+                    {
+                        <div class="col-sm-6"><div class="d-flex gap-2 small"><i class="bi @icon text-primary fs-5"></i><span>@text</span></div></div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5" id="pricing">
+    <div class="container">
+        <div class="text-center mb-4">
+            <div class="nx-eyebrow mb-2">Pricing</div>
+            <h2 class="h3">Plans that grow with your hiring.</h2>
+            <p class="text-muted">14-day free trial on every plan. No card required.</p>
+        </div>
+        <partial name="_PlanCards" model="Model" />
+    </div>
+</section>

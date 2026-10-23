@@ -1,0 +1,21 @@
+@model SkillMatch
+@{ var exact = Model.Type == SkillMatchType.Exact; }
+<div class="nx-evidence @(exact ? "exact" : "semantic")">
+    <div class="d-flex justify-content-between align-items-center gap-2">
+        <strong>@Model.Skill</strong>
+        @if (exact)
+        {
+            <span class="nx-chip nx-chip-match"><i class="bi bi-check2"></i> Exact</span>
+        }
+        else
+        {
+            <span class="nx-chip nx-chip-semantic" title="Cosine similarity from the local embedding model">Related: @Model.MatchedTerm · @Model.Similarity.ToString("0.00")</span>
+        }
+    </div>
+    <div class="small text-muted mt-1">@Model.Section</div>
+    <div class="nx-evidence-quote">@Model.Evidence</div>
+    @if (!exact)
+    {
+        <div class="small mt-1" style="color:var(--nx-ai)"><i class="bi bi-info-circle"></i> Counted at @((MockDataStore.SemanticCredit * 100).ToString("0"))% credit. Confirm the candidate's actual @Model.Skill experience.</div>
+    }
+</div>

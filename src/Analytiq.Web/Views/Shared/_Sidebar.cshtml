@@ -1,0 +1,47 @@
+@inject MockDataStore Data
+@{
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
+    string Active(string c, string? a = null) => controller == c && (a is null || action == a) ? "active" : "";
+    var awaiting = Data.Applications.Count(a => a.Stage == ApplicationStage.New && a.Processing != ProcessingStatus.Queued && a.Processing != ProcessingStatus.Processing);
+    var upcoming = Data.Interviews.Count(i => i.Status == InterviewStatus.Scheduled);
+    var openJobs = Data.Jobs.Count(j => j.Status == JobStatus.Published);
+}
+<div class="nx-sidebar-head">
+    <a class="nx-brand" asp-controller="Dashboard" asp-action="Index">
+        <span class="nx-brand-mark">N</span>
+        <span>Analytiq<small>Recruitment workspace</small></span>
+    </a>
+</div>
+<div class="nx-tenant">
+    @Html.Avatar("ZF")
+    <div class="text-truncate">
+        <div class="text-truncate fw-medium">@Data.Company.Name</div>
+        <small>@Data.Subscription.Plan plan · @Data.Company.City</small>
+    </div>
+</div>
+<nav>
+    <ul class="nx-nav">
+        <li><a class="@Active("Dashboard")" asp-controller="Dashboard" asp-action="Index"><i class="bi bi-grid-1x2"></i>Dashboard</a></li>
+        <li><a class="@Active("Jobs")" asp-controller="Jobs" asp-action="Index"><i class="bi bi-briefcase"></i>Jobs<span class="nx-count">@openJobs</span></a></li>
+        <li><a class="@(controller == "Candidates" ? "active" : "")" asp-controller="Candidates" asp-action="Index"><i class="bi bi-people"></i>Candidates<span class="nx-count" title="Awaiting review">@awaiting</span></a></li>
+        <li><a class="@Active("Interviews", "Index")@Active("Interviews", "Schedule")@Active("Interviews", "Feedback")" asp-controller="Interviews" asp-action="Index"><i class="bi bi-calendar2-week"></i>Interviews<span class="nx-count">@upcoming</span></a></li>
+        <li><a class="@Active("Offers")" asp-controller="Offers" asp-action="Index"><i class="bi bi-envelope-paper"></i>Offers</a></li>
+        <li><a class="@Active("Analytics")" asp-controller="Analytics" asp-action="Index"><i class="bi bi-bar-chart-line"></i>Analytics</a></li>
+
+        <li class="nx-nav-section">Company</li>
+        <li><a class="@Active("Billing")" asp-controller="Billing" asp-action="Index"><i class="bi bi-credit-card-2-front"></i>Billing &amp; usage</a></li>
+        <li><a class="@Active("Settings")" asp-controller="Settings" asp-action="Index"><i class="bi bi-gear"></i>Settings</a></li>
+
+        <li class="nx-nav-section">Other views</li>
+        <li><a class="@Active("Interviews", "Mine")" asp-controller="Interviews" asp-action="Mine"><i class="bi bi-person-video3"></i>My interviews</a></li>
+        <li><a asp-controller="Careers" asp-action="Index" target="_blank" rel="noopener"><i class="bi bi-globe2"></i>Careers page<i class="bi bi-box-arrow-up-right ms-auto small"></i></a></li>
+    </ul>
+</nav>
+<div class="nx-sidebar-foot">
+    <div class="nx-ai-health" title="Local AI service health (mock)">
+        <span class="nx-dot"></span>
+        <span>AI service online · local model</span>
+    </div>
+    <div class="mt-1" style="color:#6c7593">all-MiniLM-L6-v2 · no external API</div>
+</div>

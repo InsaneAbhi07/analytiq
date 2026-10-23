@@ -1,0 +1,125 @@
+@model List<Application>
+@inject MockDataStore Data
+@{
+    ViewData["Title"] = "Schedule interview";
+    int? selected = ViewBag.Selected;
+    var candidates = Model.ToList();
+    if (selected is { } sid && candidates.All(a => a.Id != sid) && Data.GetApplication(sid) is { } extra) candidates.Insert(0, extra);
+    var interviewers = Data.Team.Where(u => u.Role is "Interviewer" or "Company Admin" or "Recruiter").ToList();
+}
+
+<div class="nx-breadcrumb"><a asp-action="Index">Interviews</a> / Schedule</div>
+<div class="nx-page-head">
+    <div><h1>Schedule an interview</h1><p>Invites are emailed to the candidate and interviewers once email delivery is configured.</p></div>
+</div>
+
+<form asp-action="Schedule" method="post" class="needs-validation" novalidate>
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="nx-card mb-3">
+                <div class="nx-card-head"><h2>Candidate &amp; round</h2></div>
+                <div class="nx-card-body row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label required" for="applicationId">Candidate</label>
+                        <select class="form-select" id="applicationId" name="applicationId" required>
+                            <option value="">Select a candidate…</option>
+                            @foreach (var a in candidates)
+                            {
+                                <option value="@a.Id" selected="@(a.Id == selected)">@a.Candidate.FullName · @a.Job.Title (@Ui.StageLabel(a.Stage))</option>
+                            }
+                        </select>
+                        <div class="invalid-feedback">Choose a candidate.</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="round">Round</label>
+                        <select class="form-select" id="round"><option>Round 1</option><option>Round 2</option><option>Round 3</option><option>Final</option></select>
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label required" for="title">Interview title</label>
+                        <input class="form-control" id="title" required placeholder="e.g. Technical — APIs & data" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="type">Type</label>
+                        <select class="form-select" id="type"><option>Video</option><option>On-site</option><option>Phone</option></select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="nx-card mb-3">
+                <div class="nx-card-head"><h2>When &amp; where</h2></div>
+                <div class="nx-card-body row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label required" for="date">Date</label>
+                        <input class="form-control" type="date" id="date" name="date" required min="@DateTime.Today.ToString("yyyy-MM-dd")" value="@DateTime.Today.AddDays(2).ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label required" for="time">Start time</label>
+                        <input class="form-control" type="time" id="time" required value="11:00" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label" for="duration">Duration</label>
+                        <select class="form-select" id="duration"><option>30 min</option><option>45 min</option><option selected>60 min</option><option>90 min</option></select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="tz">Time zone</label>
+                        <select class="form-select" id="tz"><option>Asia/Kolkata (IST)</option><option>Asia/Dubai (GST)</option><option>Europe/London (GMT/BST)</option><option>America/New_York (ET)</option></select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="location">Meeting link or location</label>
+                        <input class="form-control" id="location" placeholder="https://meet.example/… or office address" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="notes">Instructions for the candidate</label>
+                        <textarea class="form-control" id="notes" rows="2" placeholder="What to prepare, who they'll meet, accessibility arrangements…"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="nx-card mb-3">
+                <div class="nx-card-head"><h2>Interviewers</h2></div>
+                <div class="nx-card-body">
+                    @foreach (var u in interviewers)
+                    {
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="iv-@u.Id" checked="@(u.Name == "Ananya Iyer")" />
+                            <label class="form-check-label d-flex align-items-center gap-2" for="iv-@u.Id">@Html.Avatar(u.Initials, "nx-avatar-sm") @u.Name <span class="small text-muted">· @u.Department</span></label>
+                        </div>
+                    }
+                    <div class="form-text">Interviewers get access to this candidate's name, resume and job details only.</div>
+                </div>
+            </div>
+            <div class="nx-card mb-3">
+                <div class="nx-card-head">
+                    <h2>Suggested questions</h2>
+                    <button type="button" class="btn btn-ai btn-sm" id="suggestQs"><i class="bi bi-stars"></i> Suggest</button>
+                </div>
+                <div class="nx-card-body">
+                    <ol class="small ps-3 mb-2" id="qList"><li class="text-muted" style="list-style:none;margin-left:-1rem">Generate editable, job-related questions from the job's required skills.</li></ol>
+                    <div class="form-text">Suggestions only. AI doesn't evaluate candidates or personality.</div>
+                </div>
+            </div>
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary" type="submit"><i class="bi bi-send"></i> Schedule &amp; send invites</button>
+                <a class="btn btn-ghost" asp-action="Index">Cancel</a>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        document.getElementById("suggestQs").addEventListener("click", () => {
+            const qs = [
+                "Walk me through an API you designed end-to-end. What trade-offs did you make?",
+                "How would you diagnose a slow query in production?",
+                "Describe a time you had to change a design after code review. What changed?",
+                "How do you decide what to test, and at which level?",
+            ];
+            const list = document.getElementById("qList");
+            list.innerHTML = "";
+            qs.forEach((q) => { const li = document.createElement("li"); li.contentEditable = "true"; li.className = "mb-1"; li.textContent = q; list.appendChild(li); });
+            nx.toast("Questions suggested. Click any question to edit it.", "info");
+        });
+    </script>
+}

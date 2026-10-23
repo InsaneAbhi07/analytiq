@@ -1,0 +1,67 @@
+@model List<ProcessingJob>
+@{ ViewData["Title"] = "AI processing"; }
+
+<div class="nx-page-head">
+    <div><h1>AI processing</h1><p>Resume-processing jobs across tenants. Only job metadata is shown here, never file contents or candidate names.</p></div>
+    <button class="btn btn-outline-secondary" data-toast="Health check passed: model loaded, 2 workers, 41 ms embedding latency (prototype)." data-toast-variant="info"><i class="bi bi-heart-pulse"></i> Run health check</button>
+</div>
+
+<div class="row g-3 mb-3">
+    @foreach (var s in Enum.GetValues<ProcessingStatus>().Where(s => s != ProcessingStatus.Uploaded))
+    {
+        <div class="col-6 col-md-4 col-xl">
+            <div class="nx-card nx-kpi">
+                <div class="nx-kpi-label"><span class="nx-badge @Ui.ProcessingBadge(s)"><i class="bi @Ui.ProcessingIcon(s)"></i>@Ui.ProcessingLabel(s)</span></div>
+                <div class="nx-kpi-value">@Model.Count(j => j.Status == s)</div>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="row g-3">
+    <div class="col-xl-8">
+        <div class="nx-card">
+            <div class="nx-card-head"><h2>Recent jobs</h2></div>
+            <div class="nx-table-wrap">
+                <table class="nx-table">
+                    <thead><tr><th>Job ID</th><th>Tenant</th><th>Type</th><th>Status</th><th class="text-end">Attempts</th><th class="text-end">Duration</th><th>Queued</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var j in Model)
+                        {
+                            <tr>
+                                <td><code>@j.Id</code></td>
+                                <td class="small">@j.Company</td>
+                                <td class="small">@j.FileType</td>
+                                <td><span class="nx-badge @Ui.ProcessingBadge(j.Status)"><i class="bi @Ui.ProcessingIcon(j.Status)"></i>@Ui.ProcessingLabel(j.Status)</span>@if (j.Error is not null) { <div class="small text-muted mt-1">@j.Error</div> }</td>
+                                <td class="text-end tabular">@j.Attempts</td>
+                                <td class="text-end tabular small">@(j.DurationMs > 0 ? $"{j.DurationMs / 1000.0:0.0} s" : "—")</td>
+                                <td class="small text-muted">@Ui.Ago(j.QueuedOn)</td>
+                                <td class="text-end">
+                                    @if (j.Status == ProcessingStatus.Failed)
+                                    {
+                                        <button class="btn btn-sm btn-outline-secondary" data-toast="Retry queued (idempotent: duplicate processing is prevented)." data-toast-variant="info">Retry</button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4">
+        <div class="nx-card nx-card-body">
+            <h2 class="h6">Model configuration</h2>
+            <dl class="nx-dl">
+                <dt>Embedding model</dt><dd>sentence-transformers/all-MiniLM-L6-v2</dd>
+                <dt>PDF extraction</dt><dd>PyMuPDF</dd>
+                <dt>DOCX extraction</dt><dd>python-docx</dd>
+                <dt>OCR</dt><dd>Disabled (Tesseract not installed)</dd>
+                <dt>Timeout</dt><dd>30 s · 3 retries with backoff</dd>
+                <dt>Max file size</dt><dd>5 MB</dd>
+                <dt>External AI provider</dt><dd><span class="nx-badge nx-badge-neutral">Disabled</span></dd>
+                <dt>Fallback mode</dt><dd>Keyword dictionary matching when the model is unavailable</dd>
+            </dl>
+        </div>
+    </div>
+</div>

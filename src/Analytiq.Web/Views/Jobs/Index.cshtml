@@ -1,0 +1,91 @@
+@model List<Job>
+@inject MockDataStore Data
+@{
+    ViewData["Title"] = "Jobs";
+    var limit = Data.Subscription.Usage[0];
+}
+
+<div class="nx-page-head">
+    <div>
+        <h1>Jobs</h1>
+        <p>@Model.Count jobs · @limit.Used of @limit.Limit active postings used on the @Data.Subscription.Plan plan</p>
+    </div>
+    <a class="btn btn-primary" asp-action="Create"><i class="bi bi-plus-lg"></i> Create job</a>
+</div>
+
+<div class="nx-card" data-filter-table>
+    <div class="nx-filters">
+        <div class="input-icon">
+            <i class="bi bi-search"></i>
+            <input class="form-control" data-filter="search" placeholder="Search by title, skill or department" aria-label="Search jobs" />
+        </div>
+        <select class="form-select" data-filter-key="status" aria-label="Status">
+            <option value="">All statuses</option>
+            @foreach (var s in Enum.GetValues<JobStatus>()) { <option>@s</option> }
+        </select>
+        <select class="form-select" data-filter-key="dept" aria-label="Department">
+            <option value="">All departments</option>
+            @foreach (var d in Model.Select(j => j.Department).Distinct()) { <option>@d</option> }
+        </select>
+        <button class="btn btn-ghost btn-sm" type="button" data-filter-reset>Reset</button>
+        <span class="ms-auto small text-muted"><span data-filter-count>@Model.Count</span> shown</span>
+    </div>
+    <div class="nx-table-wrap">
+        <table class="nx-table">
+            <thead>
+                <tr>
+                    <th data-sort="title">Job</th>
+                    <th data-sort="status">Status</th>
+                    <th data-sort="applicants" class="text-end">Applicants</th>
+                    <th class="text-end">Shortlisted</th>
+                    <th>Recruiter</th>
+                    <th data-sort="deadline">Deadline</th>
+                    <th class="text-end"><span class="visually-hidden">Actions</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var j in Model)
+                {
+                    var apps = Data.ApplicationsFor(j.Id).ToList();
+                    <tr data-row data-search="@j.Title @j.Department @j.Location @string.Join(" ", j.RequiredSkills)" data-status="@j.Status" data-dept="@j.Department"
+                        data-title="@j.Title" data-applicants="@apps.Count" data-deadline="@j.Deadline.ToString("yyyyMMdd")">
+                        <td>
+                            <a class="nx-row-link" asp-action="Details" asp-route-id="@j.Id">@j.Title</a>
+                            <div class="small text-muted">@j.Department · @j.Location · @j.WorkMode · @j.EmploymentType</div>
+                        </td>
+                        <td><span class="nx-badge @Ui.JobBadge(j.Status)">@j.Status</span></td>
+                        <td class="text-end tabular">@apps.Count</td>
+                        <td class="text-end tabular">@apps.Count(a => MockDataStore.Reached(a, ApplicationStage.Shortlisted))</td>
+                        <td class="small">@j.Recruiter</td>
+                        <td class="small text-muted">@j.Deadline.ToString("dd MMM yyyy")</td>
+                        <td class="text-end">
+                            <div class="dropdown">
+                                <button class="btn btn-ghost btn-sm btn-icon" data-bs-toggle="dropdown" aria-label="Actions for @j.Title"><i class="bi bi-three-dots"></i></button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" asp-action="Details" asp-route-id="@j.Id"><i class="bi bi-eye me-2"></i>View pipeline</a></li>
+                                    <li><a class="dropdown-item" asp-action="Edit" asp-route-id="@j.Id"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                                    @if (j.Status == JobStatus.Published)
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="Careers" asp-action="Job" asp-route-id="@j.Id" target="_blank"><i class="bi bi-box-arrow-up-right me-2"></i>Open public page</a></li>
+                                        <li><a class="dropdown-item" href="#" data-toast="Public application link copied to clipboard."><i class="bi bi-link-45deg me-2"></i>Copy application link</a></li>
+                                        <li><hr class="dropdown-divider" /></li>
+                                        <li><a class="dropdown-item" href="#" data-confirm="Applicants will no longer be able to apply until you resume it. Existing applications are kept." data-confirm-title="Pause this job?" data-confirm-ok="Pause job" data-toast="Job paused (prototype)."><i class="bi bi-pause-circle me-2"></i>Pause</a></li>
+                                    }
+                                    @if (j.Status is JobStatus.Draft or JobStatus.Paused)
+                                    {
+                                        <li><a class="dropdown-item" href="#" data-confirm="The job will appear on your public careers page." data-confirm-title="Publish this job?" data-confirm-ok="Publish" data-toast="Job published (prototype)."><i class="bi bi-send me-2"></i>Publish</a></li>
+                                    }
+                                    @if (j.Status != JobStatus.Closed)
+                                    {
+                                        <li><a class="dropdown-item text-danger" href="#" data-confirm="Closing stops new applications. Candidates still in progress are not affected." data-confirm-title="Close this job?" data-confirm-ok="Close job" data-confirm-variant="danger" data-toast="Job closed (prototype)."><i class="bi bi-x-circle me-2"></i>Close</a></li>
+                                    }
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                <tr class="nx-table-empty" hidden><td colspan="7"><i class="bi bi-search d-block fs-4 mb-1"></i>No jobs match these filters.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>

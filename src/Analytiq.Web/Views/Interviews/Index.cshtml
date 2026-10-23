@@ -1,0 +1,27 @@
+@model List<Interview>
+@{
+    ViewData["Title"] = "Interviews";
+    var now = DateTime.Now;
+    var upcoming = Model.Where(i => i.Status == InterviewStatus.Scheduled && i.StartsAt >= now.AddHours(-2)).ToList();
+    var past = Model.Where(i => !upcoming.Contains(i)).OrderByDescending(i => i.StartsAt).ToList();
+    var pendingFeedback = past.Count(i => i.Status == InterviewStatus.Completed && i.Feedback is null);
+}
+
+<div class="nx-page-head">
+    <div>
+        <h1>Interviews</h1>
+        <p>@upcoming.Count upcoming · @past.Count(i => i.Status == InterviewStatus.Completed) completed · @pendingFeedback awaiting feedback · times shown in IST</p>
+    </div>
+    <a class="btn btn-primary" asp-action="Schedule"><i class="bi bi-calendar-plus"></i> Schedule interview</a>
+</div>
+
+<div class="nx-card">
+    <ul class="nav nx-tabs px-3" role="tablist">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#up" type="button" role="tab">Upcoming <span class="nx-badge nx-badge-neutral ms-1">@upcoming.Count</span></button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#past" type="button" role="tab">Past <span class="nx-badge nx-badge-neutral ms-1">@past.Count</span></button></li>
+    </ul>
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="up" role="tabpanel"><partial name="_InterviewList" model="upcoming" /></div>
+        <div class="tab-pane fade" id="past" role="tabpanel"><partial name="_InterviewList" model="past" /></div>
+    </div>
+</div>

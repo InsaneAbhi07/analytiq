@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <partial name="_Head" />
+</head>
+<body data-toast="@TempData["Toast"]" data-toast-variant="@TempData["ToastVariant"]">
+    <div class="nx-auth">
+        <aside class="nx-auth-aside">
+            <a class="nx-brand" asp-controller="Home" asp-action="Index">
+                <span class="nx-brand-mark">N</span>
+                <span>Analytiq<small>by Abhishek Singh</small></span>
+            </a>
+            <div>
+                <h2>Screen applicants faster, and still make every decision yourself.</h2>
+                <ul>
+                    <li><i class="bi bi-diagram-3"></i><span>Explainable match scores that show the resume evidence behind every skill.</span></li>
+                    <li><i class="bi bi-person-check"></i><span>No automatic rejections. Every stage change records who made it and why.</span></li>
+                    <li><i class="bi bi-hdd-network"></i><span>Runs on local open-source models, so resumes are not sent to third-party AI APIs.</span></li>
+                    <li><i class="bi bi-buildings"></i><span>Each company's data is isolated from every other company on the platform.</span></li>
+                </ul>
+            </div>
+            <div class="small" style="color:#7c859f">UI prototype · all data shown is mock</div>
+        </aside>
+        <main class="nx-auth-main">
+            <div class="nx-auth-form">
+                @RenderBody()
+            </div>
+        </main>
+    </div>
+    <partial name="_Overlays" />
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
